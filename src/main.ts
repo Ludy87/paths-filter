@@ -238,9 +238,13 @@ export function exportResults(results: FilterResults, format: ExportFormat): voi
   core.info('Results:')
   const changes: string[] = []
   let anyChanged = false
-  let hasUnchangedFilter = false
+  const resultsObjLength = Object.keys(results).length
+  let counter = 0
   for (const [key, files] of Object.entries(results)) {
     const value = files.length > 0
+    if (value) {
+      counter++
+    }
     core.startGroup(`Filter ${key} = ${value}`)
     if (files.length > 0) {
       changes.push(key)
@@ -251,7 +255,6 @@ export function exportResults(results: FilterResults, format: ExportFormat): voi
       }
     } else {
       core.info('Matching files: none')
-      hasUnchangedFilter = true
     }
 
     core.setOutput(key, value)
@@ -263,7 +266,7 @@ export function exportResults(results: FilterResults, format: ExportFormat): voi
     core.endGroup()
   }
 
-  const allChanged = anyChanged ? !hasUnchangedFilter : true
+  const allChanged = resultsObjLength === counter ? true : false
   core.setOutput('all_changed', allChanged)
   core.setOutput('any_changed', anyChanged)
 
