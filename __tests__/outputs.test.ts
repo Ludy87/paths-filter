@@ -44,4 +44,3 @@ describe('all_changed and any_changed outputs', () => {
     expect(core.setOutput).toHaveBeenCalledWith('any_changed', false)
   })
 })
-
