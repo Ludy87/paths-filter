@@ -334,3 +334,7 @@ module.exports = require("node:crypto");
 
 /***/ }),
 
+    core.setOutput('all_changed', allChanged);
+    core.setOutput('any_changed', anyChanged);
+                throw new Error(`Failed to get ID Token.\nError Code : ${error.statusCode}\nError Message: ${error.result.message}`);
+                });

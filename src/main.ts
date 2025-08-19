@@ -254,10 +254,11 @@ function exportResults(results: FilterResults, format: ExportFormat): void {
       const filesValue = serializeExport(files, format)
       core.setOutput(`${key}_files`, filesValue)
     }
-    core.setOutput('all_changed', allChanged)
-    core.setOutput('any_changed', anyChanged)
     core.endGroup()
   }
+
+  core.setOutput('all_changed', allChanged)
+  core.setOutput('any_changed', anyChanged)
 
   if (results['changes'] === undefined) {
     const changesJson = JSON.stringify(changes)
