@@ -2,6 +2,7 @@
 
 ## v3.1.2
 - [Fix all_changed output logic in exportResults](https://github.com/Ludy87/paths-filter/pull/33)
+- [Update copyright and author information](https://github.com/Ludy87/paths-filter/pull/34)
 
 ## v3.1.0
 - [Add newline export format](https://github.com/Ludy87/paths-filter/pull/27)
