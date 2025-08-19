@@ -324,3 +324,38 @@ jobs:
       run: |
         echo "$FILES" | grep -q 'one.txt' || exit 1
         echo "$FILES" | grep -q 'two.txt' || exit 1
+
+  test-predicate-quantifier:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+    - run: |
+        mkdir -p pkg/a/b/c
+        echo "CODE" > pkg/a/b/c/test.ts
+        echo "DOC" > pkg/a/b/c/README.md
+        git add pkg/a/b/c/test.ts pkg/a/b/c/README.md
+    - uses: ./
+      id: filter
+      with:
+        base: HEAD
+        predicate-quantifier: 'every'
+        list-files: lines
+        filters: |
+          backend:
+            - 'pkg/a/b/c/**'
+            - '!**/*.md'
+            - '!**/*.jpeg'
+    - name: filter-test
+      if: steps.filter.outputs.backend != 'true'
+      run: exit 1
+    - name: count-test
+      if: steps.filter.outputs.backend_count != 1
+      run: exit 1
+    - name: files-test
+      env:
+        FILES: ${{ steps.filter.outputs.backend_files }}
+      run: |
+        echo "$FILES" | grep -q 'pkg/a/b/c/test.ts'
+        if echo "$FILES" | grep -q 'README.md'; then exit 1; fi
