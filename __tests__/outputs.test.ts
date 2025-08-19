@@ -1,4 +1,5 @@
 import {ChangeStatus} from '../src/file'
+import {Filter} from '../src/filter'
 import {exportResults} from '../src/main'
 import * as core from '@actions/core'
 
@@ -44,3 +45,31 @@ describe('all_changed and any_changed outputs', () => {
     expect(core.setOutput).toHaveBeenCalledWith('any_changed', false)
   })
 })
+
+describe('filter outputs with negated patterns', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  test('does not report filter when file is excluded by negated pattern', () => {
+    const yaml = `
+    backend:
+      - '**/*backend*'
+      - 'src/backend/**'
+      - 'src/shared/**'
+      - '**/Cargo*'
+      - '**/*rust*'
+      - 'Dockerfile'
+      - 'docker/**'
+      - '!src/frontend/**'
+    `
+    const filter = new Filter(yaml)
+    const match = filter.match(modified(['vitest.setup.ts']))
+    exportResults(match, 'none')
+    expect(core.setOutput).toHaveBeenCalledWith('backend', false)
+  })
+})
+
+function modified(paths: string[]) {
+  return paths.map(filename => ({filename, status: ChangeStatus.Modified}))
+}

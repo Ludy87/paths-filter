@@ -7,6 +7,8 @@ Run slow tasks like integration tests or deployments only for changed components
 GitHub workflows built-in [path filters](https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#onpushpull_requestpaths)
 don't allow this because they don't work on a level of individual jobs or steps.
 
+**Runtime requirement:** Node.js 20 or newer.
+
 **Real world usage examples:**
 
 - [sentry.io](https://sentry.io/) - [backend.yml](https://github.com/getsentry/sentry/blob/2ebe01feab863d89aa7564e6d243b6d80c230ddc/.github/workflows/backend.yml#L36)
