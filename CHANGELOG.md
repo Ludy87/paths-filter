@@ -1,6 +1,9 @@
 # Changelog
 
 ## v3.1.0
+- [Add newline export format](https://github.com/Ludy87/paths-filter/pull/27)
+- Update action metadata to expose newline export format
+- Switch GitHub workflows to Node.js 20
 
 ## v3.0.2
 - [Add config parameter for predicate quantifier](https://github.com/dorny/paths-filter/pull/224)
