@@ -17,7 +17,7 @@ import * as git from './git'
 import {backslashEscape, shellEscape} from './list-format/shell-escape'
 import {csvEscape} from './list-format/csv-escape'
 
-type ExportFormat = 'none' | 'csv' | 'json' | 'shell' | 'escape'
+type ExportFormat = 'none' | 'csv' | 'json' | 'shell' | 'escape' | 'lines'
 
 async function run(): Promise<void> {
   try {
@@ -288,13 +288,15 @@ function serializeExport(files: File[], format: ExportFormat): string {
       return fileNames.map(backslashEscape).join(' ')
     case 'shell':
       return fileNames.map(shellEscape).join(' ')
+    case 'lines':
+      return fileNames.join('\n')
     default:
       return ''
   }
 }
 
 function isExportFormat(value: string): value is ExportFormat {
-  return ['none', 'csv', 'shell', 'json', 'escape'].includes(value)
+  return ['none', 'csv', 'shell', 'json', 'escape', 'lines'].includes(value)
 }
 
 function getErrorMessage(error: unknown): string {
