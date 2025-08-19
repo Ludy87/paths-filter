@@ -437,8 +437,8 @@ jobs:
       with:
         base: HEAD
         filters: |
-          package1: src/package1
-          package2: src/package2
+          package1: src/package1/**
+          package2: src/package2/**
     - name: packages-test
       if: steps.filter.outputs.changes != '["package1","package2"]'
       run: |
