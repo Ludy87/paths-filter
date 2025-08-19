@@ -130,7 +130,7 @@ jobs:
       if: steps.filter.outputs.local_count != 1
       run: exit 1
 
-  test-change-type:
+  test-change-type-without-token:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -418,3 +418,110 @@ jobs:
     - name: all-changed-test
       if: steps.filter.outputs.all_changed != 'true'
       run: exit 1
+
+  matrix-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      packages: ${{ steps.filter.outputs.changes }}
+    steps:
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+    - run: |
+        mkdir -p src/package1 src/package2
+        echo "PKG1" > src/package1/file.txt
+        echo "PKG2" > src/package2/file.txt
+        git add src/package1/file.txt src/package2/file.txt
+    - uses: ./
+      id: filter
+      with:
+        base: HEAD
+        filters: |
+          package1: src/package1
+          package2: src/package2
+    - name: packages-test
+      if: steps.filter.outputs.changes != '["package1","package2"]'
+      run: exit 1
+
+  test-matrix:
+    needs: matrix-changes
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: ${{ fromJSON(needs.matrix-changes.outputs.packages) }}
+    steps:
+    - run: |
+        if [[ "${{ matrix.package }}" != 'package1' && "${{ matrix.package }}" != 'package2' ]]; then
+          exit 1
+        fi
+
+  test-renamed-file:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+    - run: git mv README.md README_RENAMED.md
+    - uses: ./
+      id: filter
+      with:
+        base: HEAD
+        filters: |
+          docs:
+            - renamed: README_RENAMED.md
+    - name: filter-test
+      if: steps.filter.outputs.docs != 'true'
+      run: exit 1
+
+  test-any-all:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+    - run: |
+        echo "ONE" > one.txt
+        echo "TWO" > two.txt
+        git add one.txt two.txt
+    - uses: ./
+      id: filter
+      with:
+        base: HEAD
+        filters: |
+          test1:
+            - one.txt
+          test2:
+            - two.txt
+    - name: any-all-test
+      if: steps.filter.outputs.any_changed != 'true' || steps.filter.outputs.all_changed != 'true'
+      run: exit 1
+
+  test-job-outputs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      packages: ${{ steps.filter.outputs.changes }}
+    steps:
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+    - run: |
+        echo "// temp" > src/temp.ts
+        git add src/temp.ts
+    - uses: ./
+      id: filter
+      with:
+        base: HEAD
+        filters: |
+          src:
+            - 'src/**'
+    - name: output-test
+      if: steps.filter.outputs.src != 'true'
+      run: exit 1
+
+  test-job-outputs-consumer:
+    needs: test-job-outputs
+    runs-on: ubuntu-latest
+    steps:
+    - name: verify-output
+      run: |
+        echo '${{ needs.test-job-outputs.outputs.packages }}' | grep -q 'src'
