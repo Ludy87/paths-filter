@@ -170,7 +170,9 @@ jobs:
         steps.filter.outputs.any != 'true' ||
         steps.filter.outputs.added_files != 'add.txt' ||
         steps.filter.outputs.modified_files != 'LICENSE' ||
-        steps.filter.outputs.deleted_files != 'README.md'
+        steps.filter.outputs.deleted_files != 'README.md' ||
+        steps.filter.outputs.any_changed != 'true' ||
+        steps.filter.outputs.all_changed != 'false'
       run: exit 1
 
   test-list-files-json:
