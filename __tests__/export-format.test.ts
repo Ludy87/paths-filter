@@ -39,4 +39,9 @@ describe('exportResults file listing formats', () => {
     exportResults(results, 'escape')
     expect(core.setOutput).toHaveBeenCalledWith('sample_files', 'simple.txt file\\ with\\ space.txt')
   })
+
+  test('exports newline separated list', () => {
+    exportResults(results, 'lines')
+    expect(core.setOutput).toHaveBeenCalledWith('sample_files', 'simple.txt\nfile with space.txt')
+  })
 })

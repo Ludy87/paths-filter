@@ -77,6 +77,7 @@ For more scenarios see [examples](#examples) section.
 - New major release `v3` after update to Node 20 [Breaking change]
 - Add `ref` input parameter
 - Add `list-files: csv` format
+- Add `list-files: lines` format
 - Configure matrix job to run for each folder with changes using `changes` output
 - Improved listing of matching files with `list-files: shell` and `list-files: escape` options
 - Paths expressions are now evaluated using [picomatch](https://github.com/micromatch/picomatch) library
@@ -141,6 +142,7 @@ For more information, see [CHANGELOG](https://github.com/dorny/paths-filter/blob
     #             If needed, it uses single or double quotes to wrap filename with unsafe characters.
     #   'escape'- Space delimited list usable as command-line argument list in Linux shell.
     #             Backslash escapes every potentially unsafe character.
+    #   'lines' - Newline delimited list of files without any escaping.
     # Default: none
     list-files: ''
 
