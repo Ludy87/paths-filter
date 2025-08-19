@@ -201,8 +201,12 @@ For more information, see [CHANGELOG](https://github.com/Ludy87/paths-filter/blo
 jobs:
   tests:
     runs-on: ubuntu-latest
+    # Required permissions
+    permissions:
+      contents: read      # required by actions/checkout
+      pull-requests: read # required by Ludy87/paths-filter
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5.0.0
     - uses: Ludy87/paths-filter@v3
       id: filter
       with:
@@ -262,7 +266,7 @@ jobs:
     if: ${{ needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5.0.0
       - ...
 
   # JOB to build and test frontend code
@@ -271,7 +275,7 @@ jobs:
     if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5.0.0
       - ...
 ```
 
@@ -310,7 +314,7 @@ jobs:
         package: ${{ fromJSON(needs.changes.outputs.packages) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5.0.0
       - ...
 ```
 
@@ -346,8 +350,12 @@ test4: &test4
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Required permissions
+    permissions:
+      contents: read      # required by actions/checkout
+      pull-requests: read # required by Ludy87/paths-filter
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5.0.0
       - name: Check for file changes
         uses: Ludy87/paths-filter@v3
         id: change
@@ -383,7 +391,7 @@ jobs:
       contents: read      # required by actions/checkout
       pull-requests: read # required by Ludy87/paths-filter
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5.0.0
     - uses: Ludy87/paths-filter@v3
       id: filter
       with:
@@ -403,8 +411,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Required permissions
+    permissions:
+      contents: read      # required by actions/checkout
+      pull-requests: read # required by Ludy87/paths-filter
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5.0.0
       with:
         # This may save additional git fetch roundtrip if
         # merge-base is found within latest 20 commits
@@ -431,8 +443,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Required permissions
+    permissions:
+      contents: read      # required by actions/checkout
+      pull-requests: read # required by Ludy87/paths-filter
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5.0.0
     - uses: Ludy87/paths-filter@v3
       id: filter
       with:
@@ -459,8 +475,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Required permissions
+    permissions:
+      contents: read      # required by actions/checkout
+      pull-requests: read # required by Ludy87/paths-filter
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5.0.0
 
       # Some action that modifies files tracked by git (e.g. code linter)
     - uses: johndoe/some-action@v1
