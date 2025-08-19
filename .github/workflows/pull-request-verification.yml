@@ -441,7 +441,9 @@ jobs:
           package2: src/package2
     - name: packages-test
       if: steps.filter.outputs.changes != '["package1","package2"]'
-      run: exit 1
+      run: |
+        echo "Expected ['package1', 'package2'], but got ${{ steps.filter.outputs.changes }}"
+        exit 1
 
   test-matrix:
     needs: matrix-changes
@@ -471,7 +473,9 @@ jobs:
             - renamed: README_RENAMED.md
     - name: filter-test
       if: steps.filter.outputs.docs != 'true'
-      run: exit 1
+      run: |
+        echo "Expected 'true', but got ${{ steps.filter.outputs.docs }}"
+        exit 1
 
   test-any-all:
     runs-on: ubuntu-latest
