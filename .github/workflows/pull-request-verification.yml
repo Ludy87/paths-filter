@@ -257,7 +257,7 @@ jobs:
     - name: count-test
       if: steps.filter.outputs.files_count != 2
       run: exit 1
-    - name: zip-test
+    - name: lines-test
       env:
         FILES: ${{ steps.filter.outputs.files_files }}
       run: |
