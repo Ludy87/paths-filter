@@ -316,6 +316,54 @@ jobs:
 
 </details>
 
+<details>
+  <summary>Use <code>any_changed</code> and <code>all_changed</code> outputs</summary>
+
+  The <code>any_changed</code> output is <code>true</code> when at least one file
+  defined in the filters is added, copied, deleted, modified, renamed, or
+  unmerged. The <code>all_changed</code> output is <code>true</code> only when every
+  file defined in the filters meets one of those conditions.
+
+`.github/config/.test.yaml`
+
+```yaml
+test1: &test1
+  - test1.txt
+
+test2: &test2
+  - test2.txt
+
+test3: &test3
+  - test3.txt
+
+test4: &test4
+  - test4.txt
+```
+
+`.github/workflows/build.yml`
+
+```yaml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for file changes
+        uses: Ludy87/paths-filter@v3
+        id: change
+        with:
+          filters: ".github/config/.test.yaml"
+
+      - name: React to any change
+        if: steps.change.outputs.any_changed == 'true'
+        run: echo "frontend-any=${{ steps.change.outputs.any_changed }}"
+      - name: React when all changed
+        if: steps.change.outputs.all_changed == 'true'
+        run: echo "frontend-all=${{ steps.change.outputs.all_changed }}"
+```
+
+</details>
+
 ### Change detection workflows
 
 <details>
