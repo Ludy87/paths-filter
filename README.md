@@ -186,7 +186,7 @@ For more information, see [CHANGELOG](https://github.com/Ludy87/paths-filter/blo
   - `'false'` - if **none** of changed files matches any of filter rules
 - For each filter, it sets an output variable with the name `${FILTER_NAME}_count` to the count of matching files.
 - If enabled, for each filter it sets an output variable with the name `${FILTER_NAME}_files`. It will contain a list of all files matching the filter.
-- `all_changed` - `'true'` if every filter contains at least one changed file or if no filters match any files (vacuous truth), otherwise `'false'`.
+- `all_changed` - `'true'` only if every filter contains at least one changed file; otherwise `'false'`.
 - `any_changed` - `'true'` if **any** filter contains at least one changed file, otherwise `'false'`.
 - `changes` - JSON array with names of all filters matching any of the changed files.
 
@@ -322,7 +322,7 @@ jobs:
   The <code>any_changed</code> output is <code>true</code> when at least one file
   defined in the filters is added, copied, deleted, modified, renamed, or
   unmerged. The <code>all_changed</code> output is <code>true</code> only when every
-  file defined in the filters meets one of those conditions.
+  filter matches at least one such file.
 
 `.github/config/.test.yaml`
 
