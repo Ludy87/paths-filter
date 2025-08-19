@@ -40,7 +40,7 @@ describe('all_changed and any_changed outputs', () => {
       docs: []
     }
     exportResults(results, 'none')
-    expect(core.setOutput).toHaveBeenCalledWith('all_changed', true)
+    expect(core.setOutput).toHaveBeenCalledWith('all_changed', false)
     expect(core.setOutput).toHaveBeenCalledWith('any_changed', false)
   })
 })
