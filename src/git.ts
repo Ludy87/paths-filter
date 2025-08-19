@@ -269,3 +269,28 @@ const statusMap: {[char: string]: ChangeStatus} = {
   R: ChangeStatus.Renamed,
   U: ChangeStatus.Unmerged
 }
+
+export function getChangeStatus(code: string): ChangeStatus {
+  const status = statusMap[code]
+  if (status === undefined) {
+    throw new Error(`Unknown change status '${code}'`)
+  }
+  return status
+}
+
+export function groupFilesByStatus(files: File[]): Record<ChangeStatus, File[]> {
+  const grouped: Record<ChangeStatus, File[]> = {
+    [ChangeStatus.Added]: [],
+    [ChangeStatus.Copied]: [],
+    [ChangeStatus.Deleted]: [],
+    [ChangeStatus.Modified]: [],
+    [ChangeStatus.Renamed]: [],
+    [ChangeStatus.Unmerged]: []
+  }
+
+  for (const file of files) {
+    grouped[file.status].push(file)
+  }
+
+  return grouped
+}

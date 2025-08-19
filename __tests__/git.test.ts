@@ -25,6 +25,22 @@ describe('parsing output of the git diff command', () => {
       {filename: 'src/conflict.ts', status: ChangeStatus.Unmerged}
     ])
   })
+
+  test('getChangeStatus throws on unknown status', () => {
+    expect(() => git.getChangeStatus('X')).toThrow(/Unknown change status/)
+  })
+
+  test('groupFilesByStatus groups files by their change status', () => {
+    const grouped = git.groupFilesByStatus([
+      {filename: 'a', status: ChangeStatus.Added},
+      {filename: 'b', status: ChangeStatus.Added},
+      {filename: 'c', status: ChangeStatus.Modified}
+    ])
+
+    expect(grouped[ChangeStatus.Added].length).toBe(2)
+    expect(grouped[ChangeStatus.Modified].length).toBe(1)
+    expect(grouped[ChangeStatus.Deleted].length).toBe(0)
+  })
 })
 
 describe('git utility function tests (those not invoking git)', () => {

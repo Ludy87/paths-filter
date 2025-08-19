@@ -1,7 +1,6 @@
 # Changelog
 
-## v4.0.0
-- Update to Node.js 20
+## v3.1.0
 
 ## v3.0.2
 - [Add config parameter for predicate quantifier](https://github.com/dorny/paths-filter/pull/224)
