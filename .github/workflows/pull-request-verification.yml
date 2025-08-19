@@ -231,7 +231,7 @@ jobs:
       env:
         FILES: ${{ steps.filter.outputs.files_files }}
       run: |
-        echo "$FILES" | grep -q 'one.txt, two.txt' || exit 1
+        echo "$FILES" | grep -q 'one.txt,two.txt' || exit 1
 
   test-list-files-lines:
     runs-on: ubuntu-latest
@@ -261,7 +261,7 @@ jobs:
       env:
         FILES: ${{ steps.filter.outputs.files_files }}
       run: |
-        echo "$FILES" | grep -q 'one.txt, two.txt' || exit 1
+        echo "$FILES" | tr '\n' ',' | grep -q 'one.txt,two.txt' || exit 1
 
   test-list-files-shell:
     runs-on: ubuntu-latest
