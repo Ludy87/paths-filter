@@ -1,4 +1,4 @@
-name: 'Paths Changes Filter'
+name: 'Paths Changes Filter - change by @Ludy87'
 description: 'Execute your workflow steps only if relevant files are modified.'
 author: 'Michal Dorner <dorner.michal@gmail.com>'
 inputs:
