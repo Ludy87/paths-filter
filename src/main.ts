@@ -208,8 +208,8 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
         // Therefore we treat it as if rename detection in git diff was turned off.
         // Rename is replaced by delete of original filename and add of new filename
         if (row.status === ChangeStatus.Renamed) {
-          core.info(`Renamed file detected: ${row.filename} (previous: ${row.previous_filename})`)
           const previousFilename = 'previous_filename' in row ? (row.previous_filename as string) : undefined
+          core.info(`Renamed file detected: ${row.filename} (previous: ${previousFilename})`)
           if (previousFilename === undefined) {
             core.warning(`Renamed file detected but previous filename is missing: ${row.filename}`)
             files.push({
@@ -222,7 +222,7 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
               from: previousFilename,
               to: row.filename,
               status: ChangeStatus.Renamed,
-              filename: previousFilename
+              filename: row.filename
             })
           }
           // files.push({
