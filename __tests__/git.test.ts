@@ -18,7 +18,7 @@ describe('parsing output of the git diff command', () => {
   test('parseGitDiffOutput handles copied, renamed and unmerged statuses', async () => {
     const payload = [
       'C75',
-      'src/original75.ts',
+      'src/copied75.ts',
       'src/copied75.ts',
       'R100',
       'src/renamed100_old.ts',
@@ -26,7 +26,7 @@ describe('parsing output of the git diff command', () => {
       'U',
       'src/conflict.ts',
       'C',
-      'src/copied_old.ts',
+      'src/copied.ts',
       'src/copied.ts',
       'R',
       'src/renamed_old.ts',
