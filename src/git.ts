@@ -161,7 +161,8 @@ export function parseGitDiffOutput(output: string): File[] {
       }
 
       if (to === undefined) {
-        core.warning(`Incomplete rename/copy record for code "${code}"`)
+      if (to === undefined) {
+        core.warning(`Missing new filename for code "${code}"`)
         continue
       }
       files.push({status, filename: to, from, similarity})
