@@ -46,7 +46,9 @@ describe('getChangedFilesFromApi', () => {
     const files = await getChangedFilesFromApi('token', pr)
 
     // Erwartung: "from" ist gesetzt
-    expect(files).toEqual([{filename: 'src/file1.ts', status: ChangeStatus.Copied, from: 'src/file.ts'}])
+    expect(files).toEqual([
+      {filename: 'src/file1.ts', status: ChangeStatus.Copied, from: 'src/file.ts', to: 'src/file1.ts'}
+    ])
   })
 
   test('normalizes removed and renamed statuses', async () => {
@@ -72,8 +74,8 @@ describe('getChangedFilesFromApi', () => {
     // Neu: copied behält "from"
     expect(files).toEqual([
       {filename: 'deleted.txt', status: ChangeStatus.Deleted},
-      {to: 'new.txt', status: ChangeStatus.Renamed, from: 'old.txt', filename: 'old.txt'},
-      {filename: 'cp.txt', status: ChangeStatus.Copied, from: 'orig.txt'}
+      {filename: 'old.txt', status: ChangeStatus.Renamed, from: 'old.txt', to: 'new.txt'},
+      {filename: 'cp.txt', status: ChangeStatus.Copied, from: 'orig.txt', to: 'cp.txt'}
     ])
 
     expect(merge).toHaveBeenCalledWith({

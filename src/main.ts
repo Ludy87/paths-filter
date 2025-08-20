@@ -245,6 +245,7 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
           } else {
             files.push({
               filename: row.filename,
+              to: row.filename,
               status: ChangeStatus.Copied,
               from: previousFilename
             })
