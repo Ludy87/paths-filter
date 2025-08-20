@@ -172,6 +172,7 @@ export function parseGitDiffOutput(output: string): File[] {
         core.info(`${status} ${from} to ${to}`)
       }
       files.push({status, filename: to, from, similarity})
+      core.info(`files: ${JSON.stringify(files)}`)
     } else {
       const name = tokens[i++]
       if (name === undefined) {
