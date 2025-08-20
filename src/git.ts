@@ -9,7 +9,8 @@ export async function getChangesInLastCommit(): Promise<File[]> {
   core.startGroup(`Change detection in last commit`)
   let output = ''
   try {
-    output = (await getExecOutput('git', ['log', '--format=', '--no-renames', '--name-status', '-z', '-n', '1'])).stdout
+    // output = (await getExecOutput('git', ['log', '--format=', '--no-renames', '--name-status', '-z', '-n', '1'])).stdout
+    output = (await getExecOutput('git', ['log', '--format=', '--name-status', '-z', '-M', '-n', '1'])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -27,8 +28,8 @@ export async function getChanges(base: string, head: string): Promise<File[]> {
   let output = ''
   try {
     // Two dots '..' change detection - directly compares two versions
-    output = (await getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}..${headRef}`]))
-      .stdout
+    // output = (await getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}..${headRef}`])).stdout
+    output = (await getExecOutput('git', ['diff', '--name-status', '-z', '-M', `${baseRef}..${headRef}`])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -42,7 +43,8 @@ export async function getChangesOnHead(): Promise<File[]> {
   core.startGroup(`Change detection on HEAD`)
   let output = ''
   try {
-    output = (await getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', 'HEAD'])).stdout
+    // output = (await getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', 'HEAD'])).stdout
+    output = (await getExecOutput('git', ['diff', '--name-status', '-z', '-M', 'HEAD'])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -133,14 +135,36 @@ export async function getChangesSinceMergeBase(base: string, head: string, initi
 }
 
 export function parseGitDiffOutput(output: string): File[] {
-  const tokens = output.split('\u0000').filter(s => s.length > 0)
+  const tokens = output.split('\u0000').filter(Boolean)
+  core.info(`Parsing git diff output: ${JSON.stringify(tokens)}`)
+
   const files: File[] = []
-  for (let i = 0; i + 1 < tokens.length; i += 2) {
-    files.push({
-      status: statusMap[tokens[i]],
-      filename: tokens[i + 1]
-    })
+  for (let i = 0; i < tokens.length; ) {
+    const code = tokens[i++] // z. B. "M", "A", "D", "R100", "C75", "U"
+    const kind = code[0] // erster Buchstabe
+    const status = statusMap[kind] // mappt "R100" → Renamed usw.
+
+    if (kind === 'R' || kind === 'C') {
+      const oldName = tokens[i++]
+      // i++ // altes Filename-Token überspringen
+      const newName = tokens[i++]
+      core.info(`Renaming ${oldName} to ${newName}`)
+      if (newName === undefined) {
+        core.warning(`Incomplete rename/copy record for code "${code}"`)
+        continue
+      }
+      files.push({status, filename: newName})
+    } else {
+      // Zwei Tokens: STATUS, PFAD
+      const name = tokens[i++]
+      if (name === undefined) {
+        core.warning(`Missing filename for code "${code}"`)
+        continue
+      }
+      files.push({status, filename: name})
+    }
   }
+
   return files
 }
 

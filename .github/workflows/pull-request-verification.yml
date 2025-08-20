@@ -448,6 +448,8 @@ jobs:
   test-matrix:
     needs: matrix-changes
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         package: ${{ fromJSON(needs.matrix-changes.outputs.packages) }}
@@ -525,6 +527,8 @@ jobs:
   test-job-outputs-consumer:
     needs: test-job-outputs
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
     - name: verify-output
       run: |
