@@ -137,25 +137,11 @@ export async function getChangesSinceMergeBase(base: string, head: string, initi
 export function parseGitDiffOutput(output: string): File[] {
   const tokens = output.split('\u0000').filter(s => s.length > 0)
   const files: File[] = []
-  // for (let i = 0; i + 1 < tokens.length; i += 2) {
-  //   files.push({
-  //     status: statusMap[tokens[i]],
-  //     filename: tokens[i + 1]
-  //   })
-  // }
-  for (let i = 0; i < tokens.length; ) {
-    const code = tokens[i++]
-    const kind = code[0]
-    const status = getChangeStatus(kind)
-    if (kind === 'R' || kind === 'C') {
-      const _oldName = tokens[i++]
-      const newName = tokens[i++]
-      core.info(`Renaming ${_oldName} to ${newName} with status ${status}`)
-      files.push({status, filename: newName})
-    } else {
-      const name = tokens[i++]
-      files.push({status, filename: name})
-    }
+  for (let i = 0; i + 1 < tokens.length; i += 2) {
+    files.push({
+      status: statusMap[tokens[i]],
+      filename: tokens[i + 1]
+    })
   }
   return files
 }
