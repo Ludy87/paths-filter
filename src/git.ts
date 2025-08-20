@@ -136,6 +136,7 @@ export async function getChangesSinceMergeBase(base: string, head: string, initi
 
 export function parseGitDiffOutput(output: string): File[] {
   const tokens = output.split('\u0000').filter(s => s.length > 0)
+  core.info(`Parsing git diff output: ${JSON.stringify(tokens)}`)
   const files: File[] = []
   for (let i = 0; i + 1 < tokens.length; i += 2) {
     files.push({
