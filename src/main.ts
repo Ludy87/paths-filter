@@ -207,8 +207,8 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
         // There's no obvious use-case for detection of renames
         // Therefore we treat it as if rename detection in git diff was turned off.
         // Rename is replaced by delete of original filename and add of new filename
+        const previousFilename = 'previous_filename' in row ? (row.previous_filename as string) : undefined
         if (row.status === ChangeStatus.Renamed) {
-          const previousFilename = 'previous_filename' in row ? (row.previous_filename as string) : undefined
           core.info(`Renamed file detected: ${row.filename} (previous: ${previousFilename})`)
           if (previousFilename === undefined) {
             core.warning(`Renamed file detected but previous filename is missing: ${row.filename}`)
@@ -225,18 +225,8 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
               filename: row.filename
             })
           }
-          // files.push({
-          //   filename: row.filename,
-          //   status: ChangeStatus.Added
-          // })
-          // files.push({
-          //   // 'previous_filename' for some unknown reason isn't in the type definition or documentation
-          //   filename: 'previous_filename' in row ? (row.previous_filename as string) : '',
-          //   status: ChangeStatus.Deleted
-          // })
         } else if (row.status === ChangeStatus.Copied) {
-          core.info(`Copied file detected: ${row.filename} (previous: ${row.previous_filename})`)
-          const previousFilename = 'previous_filename' in row ? (row.previous_filename as string) : undefined
+          core.info(`Copied file detected: ${row.filename} (previous: ${previousFilename})`)
           if (previousFilename === undefined) {
             core.warning(`Copied file detected but previous filename is missing: ${row.filename}`)
             files.push({
@@ -260,7 +250,6 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
             filename: row.filename,
             status
           })
-          core.info(`Unstaged changes detected: ${row.filename}`)
         }
       }
     }
