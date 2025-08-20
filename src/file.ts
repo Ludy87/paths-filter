@@ -4,6 +4,7 @@ export interface File {
   from: string
   to?: string
   similarity?: number
+  previous_filename?: string | undefined
 }
 
 export enum ChangeStatus {

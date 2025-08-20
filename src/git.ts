@@ -161,7 +161,6 @@ export function parseGitDiffOutput(output: string): File[] {
       }
 
       if (to === undefined) {
-      if (to === undefined) {
         core.warning(`Missing new filename for code "${code}"`)
         continue
       }
