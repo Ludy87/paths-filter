@@ -472,7 +472,7 @@ jobs:
         base: HEAD
         filters: |
           docs:
-            - renamed: README_RENAMED.md
+            - renamed: README.md
     - name: filter-test
       if: steps.filter.outputs.docs != 'true'
       run: |

@@ -109,7 +109,7 @@ export class Filter {
 
   private isMatch(file: File, patterns: FilterRuleItem[]): boolean {
     const aPredicate = (rule: Readonly<FilterRuleItem>): boolean => {
-      return (rule.status === undefined || rule.status.includes(file.status)) && rule.isMatch(file.filename)
+      return (rule.status === undefined || rule.status.includes(file.status)) && rule.isMatch(file.from)
     }
 
     const positives = patterns.filter(p => !p.negate)

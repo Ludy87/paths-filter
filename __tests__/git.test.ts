@@ -18,16 +18,16 @@ describe('parsing output of the git diff command', () => {
   test('parseGitDiffOutput handles copied, renamed and unmerged statuses', async () => {
     const payload = [
       'C75',
-      'src/original75.ts',
       'src/copied75.ts',
+      'src/c/copied75.ts',
       'R100',
       'src/renamed100_old.ts',
       'src/renamed100.ts',
       'U',
       'src/conflict.ts',
       'C',
-      'src/copied_old.ts',
       'src/copied.ts',
+      'src/c/copied.ts',
       'R',
       'src/renamed_old.ts',
       'src/renamed.ts'
@@ -35,13 +35,18 @@ describe('parsing output of the git diff command', () => {
 
     const files = git.parseGitDiffOutput(payload)
 
-    expect(files).toEqual([
-      {filename: 'src/copied75.ts', status: ChangeStatus.Copied},
-      {filename: 'src/renamed100.ts', status: ChangeStatus.Renamed},
+    // Prüfe per Subset-Match die wesentlichen Felder
+    expect(files).toMatchObject([
+      {filename: 'src/c/copied75.ts', status: ChangeStatus.Copied, from: 'src/copied75.ts', similarity: 75},
+      {filename: 'src/renamed100.ts', status: ChangeStatus.Renamed, from: 'src/renamed100_old.ts', similarity: 100},
       {filename: 'src/conflict.ts', status: ChangeStatus.Unmerged},
-      {filename: 'src/copied.ts', status: ChangeStatus.Copied},
-      {filename: 'src/renamed.ts', status: ChangeStatus.Renamed}
+      {filename: 'src/c/copied.ts', status: ChangeStatus.Copied, from: 'src/copied.ts'}, // ohne Score
+      {filename: 'src/renamed.ts', status: ChangeStatus.Renamed, from: 'src/renamed_old.ts'} // ohne Score
     ])
+
+    // Optional: explizit sicherstellen, dass bei Einträgen ohne Zahl kein similarity-Field gesetzt ist
+    expect(files[3].similarity).toBeUndefined()
+    expect(files[4].similarity).toBeUndefined()
   })
 
   test('getChangeStatus throws on unknown status', () => {
@@ -50,9 +55,9 @@ describe('parsing output of the git diff command', () => {
 
   test('groupFilesByStatus groups files by their change status', () => {
     const grouped = git.groupFilesByStatus([
-      {filename: 'a', status: ChangeStatus.Added},
-      {filename: 'b', status: ChangeStatus.Added},
-      {filename: 'c', status: ChangeStatus.Modified}
+      {filename: 'a', status: ChangeStatus.Added, from: 'a'},
+      {filename: 'b', status: ChangeStatus.Added, from: 'b'},
+      {filename: 'c', status: ChangeStatus.Modified, from: 'c'}
     ])
 
     expect(grouped[ChangeStatus.Added].length).toBe(2)

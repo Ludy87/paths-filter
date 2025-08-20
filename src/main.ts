@@ -207,21 +207,46 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
         // There's no obvious use-case for detection of renames
         // Therefore we treat it as if rename detection in git diff was turned off.
         // Rename is replaced by delete of original filename and add of new filename
+        const previousFilename = 'previous_filename' in row ? (row.previous_filename as string) : undefined
         if (row.status === ChangeStatus.Renamed) {
-          core.info(`Detected renamed file: ${row.filename} -> ${row.previous_filename}`)
-          files.push({
-            filename: row.filename,
-            status: ChangeStatus.Added
-          })
-          files.push({
-            // 'previous_filename' for some unknown reason isn't in the type definition or documentation
-            filename: 'previous_filename' in row ? (row.previous_filename as string) : '',
-            status: ChangeStatus.Deleted
-          })
+          core.info(`Renamed file detected: ${row.filename} (previous: ${previousFilename})`)
+          if (previousFilename === undefined) {
+            core.warning(`Renamed file detected but previous filename is missing: ${row.filename}`)
+            files.push({
+              filename: row.filename,
+              status: ChangeStatus.Added,
+              from: row.filename
+            })
+          } else {
+            files.push({
+              from: previousFilename,
+              to: row.filename,
+              status: ChangeStatus.Renamed,
+              filename: row.filename
+            })
+          }
+        } else if (row.status === ChangeStatus.Copied) {
+          core.info(`Copied file detected: ${row.filename} (previous: ${previousFilename})`)
+          if (previousFilename === undefined) {
+            core.warning(`Copied file detected but previous filename is missing: ${row.filename}`)
+            files.push({
+              from: row.filename,
+              filename: row.filename,
+              status: ChangeStatus.Added
+            })
+          } else {
+            files.push({
+              filename: row.filename,
+              to: row.filename,
+              status: ChangeStatus.Copied,
+              from: previousFilename
+            })
+          }
         } else {
           // Github status and git status variants are same except for deleted files
           const status = row.status === 'removed' ? ChangeStatus.Deleted : (row.status as ChangeStatus)
           files.push({
+            from: row.filename,
             filename: row.filename,
             status
           })
@@ -247,12 +272,22 @@ export function exportResults(results: FilterResults, format: ExportFormat): voi
       counter++
     }
     core.startGroup(`Filter ${key} = ${value}`)
+    core.info(`Filter ${key} matched ${files.length} files`)
     if (files.length > 0) {
       changes.push(key)
       anyChanged = true
       core.info('Matching files:')
       for (const file of files) {
-        core.info(`${file.filename} [${file.status}]`)
+        const filePrevious = 'previous_filename' in file ? (file.previous_filename as string) : undefined
+        if (filePrevious === undefined) {
+          if (file.status === ChangeStatus.Renamed || file.status === ChangeStatus.Copied) {
+            core.info(`${file.from} -> ${file.filename} [${file.status}]`)
+          } else {
+            core.info(`${file.filename} [${file.status}]`)
+          }
+        } else {
+          core.info(`[Trigger file: ${filePrevious}] - ${file.filename} [${file.status}]`)
+        }
       }
     } else {
       core.info('Matching files: none')
@@ -312,4 +347,4 @@ if (require.main === module) {
   void run()
 }
 
-export {run}
+export {run, getChangedFilesFromApi}
