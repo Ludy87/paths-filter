@@ -39,7 +39,6 @@ export async function getChanges(base: string, head: string): Promise<File[]> {
         `${baseRef}..${headRef}`
       ])
     ).stdout
-    core.info(`Changes detected: ${output}`)
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -55,7 +54,6 @@ export async function getChangesOnHead(): Promise<File[]> {
   try {
     // output = (await getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', 'HEAD'])).stdout
     output = (await getExecOutput('git', ['diff', '--name-status', '--find-copies-harder', '-z', '-M', 'HEAD'])).stdout
-    core.info(`Changes detected: ${output}`)
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -137,7 +135,6 @@ export async function getChangesSinceMergeBase(base: string, head: string, initi
   let output = ''
   try {
     output = (await getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', diffArg])).stdout
-    core.info(`Changes detected: ${output}`)
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -148,7 +145,6 @@ export async function getChangesSinceMergeBase(base: string, head: string, initi
 
 export function parseGitDiffOutput(output: string): File[] {
   const tokens = output.split('\u0000').filter(Boolean)
-  core.info(`Parsing git diff output: ${JSON.stringify(tokens)}`)
 
   const files: File[] = []
   for (let i = 0; i < tokens.length; ) {
@@ -157,7 +153,6 @@ export function parseGitDiffOutput(output: string): File[] {
     const status = statusMap[kind] // mappt "R100" -> Renamed
     const maybeSim = Number.parseInt(code.slice(1), 10)
     const similarity = Number.isFinite(maybeSim) ? maybeSim : undefined
-    core.info(`Processing code: ${code} -> status: ${status}, similarity: ${similarity}, kind: ${kind}`)
     if (kind === 'R' || kind === 'C') {
       const from = tokens[i++]
       const to = tokens[i++]
@@ -168,11 +163,8 @@ export function parseGitDiffOutput(output: string): File[] {
       if (to === undefined) {
         core.warning(`Incomplete rename/copy record for code "${code}"`)
         continue
-      } else {
-        core.info(`${status} ${from} to ${to}`)
       }
       files.push({status, filename: to, from, similarity})
-      core.info(`files: ${JSON.stringify(files)}`)
     } else {
       const name = tokens[i++]
       if (name === undefined) {

@@ -1,7 +1,6 @@
 import * as jsyaml from 'js-yaml'
 import picomatch from 'picomatch'
 import {File, ChangeStatus} from './file'
-import * as core from '@actions/core'
 
 // Type definition of object we expect to load from YAML
 interface FilterYaml {
@@ -101,15 +100,10 @@ export class Filter {
   }
 
   match(files: File[]): FilterResults {
-    core.startGroup('Filter files')
-    core.info(`Filtering ${JSON.stringify(files)} files`)
     const result: FilterResults = {}
     for (const [key, patterns] of Object.entries(this.rules)) {
-      core.info(`Applying filter '${key}' with patterns: ${JSON.stringify(patterns)}`)
       result[key] = files.filter(file => this.isMatch(file, patterns))
-      core.info(`Matched files for filter '${key}': ${JSON.stringify(result[key])}`)
     }
-    core.endGroup()
     return result
   }
 

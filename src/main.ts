@@ -280,7 +280,6 @@ export function exportResults(results: FilterResults, format: ExportFormat): voi
   for (const [key, files] of Object.entries(results)) {
     const value = files.length > 0
     if (value) {
-      core.info(`${files.length} files`)
       counter++
     }
     core.startGroup(`Filter ${key} = ${value}`)
@@ -292,7 +291,11 @@ export function exportResults(results: FilterResults, format: ExportFormat): voi
       for (const file of files) {
         const filePrevious = 'previous_filename' in file ? (file.previous_filename as string) : undefined
         if (filePrevious === undefined) {
-          core.info(`${file.filename} [${file.status}]`)
+          if (file.status === ChangeStatus.Renamed) {
+            core.info(`${file.from} -> ${file.filename} [${file.status}]`)
+          } else {
+            core.info(`${file.filename} [${file.status}]`)
+          }
         } else {
           core.info(`[Trigger file: ${filePrevious}] - ${file.filename} [${file.status}]`)
         }
