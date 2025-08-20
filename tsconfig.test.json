@@ -11,5 +11,5 @@
   ],
   "exclude": [
     "node_modules"
-  ] // überschreibt das exclude des Basis-Projekts
+  ] // overrides the exclude from the base project
 }
