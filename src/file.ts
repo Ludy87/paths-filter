@@ -1,6 +1,5 @@
 export interface File {
   filename: string
-  oldFilename?: string
   status: ChangeStatus
 }
 

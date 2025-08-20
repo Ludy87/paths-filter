@@ -19,7 +19,7 @@ describe('parsing output of the git diff command', () => {
     const payload = [
       'C75',
       'src/copied75.ts',
-      'src/copied75.ts',
+      'src/c/copied75.ts',
       'R100',
       'src/renamed100_old.ts',
       'src/renamed100.ts',
@@ -27,7 +27,7 @@ describe('parsing output of the git diff command', () => {
       'src/conflict.ts',
       'C',
       'src/copied.ts',
-      'src/copied.ts',
+      'src/c/copied.ts',
       'R',
       'src/renamed_old.ts',
       'src/renamed.ts'
@@ -36,10 +36,10 @@ describe('parsing output of the git diff command', () => {
     const files = git.parseGitDiffOutput(payload)
 
     expect(files).toEqual([
-      {filename: 'src/copied75.ts', status: ChangeStatus.Copied},
+      {filename: 'src/c/copied75.ts', status: ChangeStatus.Copied},
       {filename: 'src/renamed100.ts', status: ChangeStatus.Renamed},
       {filename: 'src/conflict.ts', status: ChangeStatus.Unmerged},
-      {filename: 'src/copied.ts', status: ChangeStatus.Copied},
+      {filename: 'src/c/copied.ts', status: ChangeStatus.Copied},
       {filename: 'src/renamed.ts', status: ChangeStatus.Renamed}
     ])
   })
