@@ -16,7 +16,7 @@ jest.mock('@actions/github', () => ({
 
 describe('getChangedFilesFromApi', () => {
   test('handles copied status', async () => {
-    // GitHub liefert bei "copied": filename = Ziel, previous_filename = Quelle
+    // For "copied", GitHub sets filename to the destination and previous_filename to the source
     const mockResponse = {
       status: 200,
       data: [
@@ -45,7 +45,7 @@ describe('getChangedFilesFromApi', () => {
 
     const files = await getChangedFilesFromApi('token', pr)
 
-    // Erwartung: "from" ist gesetzt
+    // Expect "from" to be set
     expect(files).toEqual([
       {filename: 'src/file1.ts', status: ChangeStatus.Copied, from: 'src/file.ts', to: 'src/file1.ts'}
     ])
@@ -70,8 +70,8 @@ describe('getChangedFilesFromApi', () => {
 
     const files = await getChangedFilesFromApi('token', {number: 7} as any)
 
-    // Wie gehabt: rename → Added (neu) + Deleted (alt)
-    // Neu: copied behält "from"
+    // Renamed files return a single entry with both source and destination
+    // Copied files retain their source path in "from"
     expect(files).toEqual([
       {filename: 'deleted.txt', status: ChangeStatus.Deleted, from: 'deleted.txt'},
       {filename: 'new.txt', status: ChangeStatus.Renamed, from: 'old.txt', to: 'new.txt'},
