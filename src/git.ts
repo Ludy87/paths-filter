@@ -135,15 +135,37 @@ export async function getChangesSinceMergeBase(base: string, head: string, initi
 }
 
 export function parseGitDiffOutput(output: string): File[] {
-  const tokens = output.split('\u0000').filter(s => s.length > 0)
+  const tokens = output.split('\u0000').filter(Boolean)
   core.info(`Parsing git diff output: ${JSON.stringify(tokens)}`)
+
   const files: File[] = []
-  for (let i = 0; i + 1 < tokens.length; i += 2) {
-    files.push({
-      status: statusMap[tokens[i][0]],
-      filename: tokens[i + 1]
-    })
+  for (let i = 0; i < tokens.length; ) {
+    const code = tokens[i++] // z. B. "M", "A", "D", "R100", "C75", "U"
+    const kind = code[0] // erster Buchstabe
+    const status = statusMap[kind] // mappt "R100" → Renamed usw.
+
+    if (kind === 'R' || kind === 'C') {
+      // Drei Tokens: STATUS, ALT, NEU
+      // ALT überspringen (oder bei Bedarf speichern)
+      // const oldName = tokens[i++]
+      i++ // altes Filename-Token überspringen
+      const newName = tokens[i++]
+      if (newName === undefined) {
+        core.warning(`Incomplete rename/copy record for code "${code}"`)
+        continue
+      }
+      files.push({status, filename: newName /*, oldFilename: oldName */})
+    } else {
+      // Zwei Tokens: STATUS, PFAD
+      const name = tokens[i++]
+      if (name === undefined) {
+        core.warning(`Missing filename for code "${code}"`)
+        continue
+      }
+      files.push({status, filename: name})
+    }
   }
+
   return files
 }
 
