@@ -8,7 +8,7 @@ describe('sample filter usage', () => {
       - sample/**
     `
     const filter = new Filter(yaml)
-    const files = [{filename: 'sample/example.ts', status: ChangeStatus.Modified}]
+    const files = [{filename: 'sample/example.ts', status: ChangeStatus.Modified, from: 'sample/example.ts'}]
     const match = filter.match(files)
     expect(match.sample).toEqual(files)
   })
@@ -19,7 +19,7 @@ describe('sample filter usage', () => {
       - sample/**
     `
     const filter = new Filter(yaml)
-    const files = [{filename: 'other/example.ts', status: ChangeStatus.Modified}]
+    const files = [{filename: 'other/example.ts', status: ChangeStatus.Modified, from: 'other/example.ts'}]
     const match = filter.match(files)
     expect(match.sample).toEqual([])
   })

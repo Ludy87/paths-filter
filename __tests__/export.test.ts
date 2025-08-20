@@ -46,6 +46,6 @@ describe('set output post filtering', () => {
 
 function modified(paths: string[]): File[] {
   return paths.map(filename => {
-    return {filename, status: ChangeStatus.Modified}
+    return {filename, status: ChangeStatus.Modified, from: filename}
   })
 }

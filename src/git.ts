@@ -179,7 +179,7 @@ export function parseGitDiffOutput(output: string): File[] {
         core.warning(`Missing filename for code "${code}"`)
         continue
       }
-      files.push({status, filename: name})
+      files.push({status, filename: name, from: name})
     }
   }
 
@@ -201,7 +201,8 @@ export async function listAllFilesAsAdded(): Promise<File[]> {
     .filter(s => s.length > 0)
     .map(path => ({
       status: ChangeStatus.Added,
-      filename: path
+      filename: path,
+      from: path
     }))
 }
 

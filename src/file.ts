@@ -1,7 +1,7 @@
 export interface File {
   filename: string
   status: ChangeStatus
-  from?: string
+  from: string
   to?: string
   similarity?: number
 }

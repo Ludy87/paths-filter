@@ -214,7 +214,8 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
             core.warning(`Renamed file detected but previous filename is missing: ${row.filename}`)
             files.push({
               filename: row.filename,
-              status: ChangeStatus.Added
+              status: ChangeStatus.Added,
+              from: row.filename
             })
           } else {
             files.push({
@@ -239,6 +240,7 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
           if (previousFilename === undefined) {
             core.warning(`Copied file detected but previous filename is missing: ${row.filename}`)
             files.push({
+              from: row.filename,
               filename: row.filename,
               status: ChangeStatus.Added
             })
@@ -254,6 +256,7 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
           // Github status and git status variants are same except for deleted files
           const status = row.status === 'removed' ? ChangeStatus.Deleted : (row.status as ChangeStatus)
           files.push({
+            from: row.filename,
             filename: row.filename,
             status
           })

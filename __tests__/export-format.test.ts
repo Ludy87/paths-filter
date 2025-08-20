@@ -11,8 +11,8 @@ jest.mock('@actions/core', () => ({
 
 describe('exportResults file listing formats', () => {
   const files = [
-    {filename: 'simple.txt', status: ChangeStatus.Modified},
-    {filename: 'file with space.txt', status: ChangeStatus.Added}
+    {filename: 'simple.txt', status: ChangeStatus.Modified, from: 'simple.txt'},
+    {filename: 'file with space.txt', status: ChangeStatus.Added, from: 'file with space.txt'}
   ]
   const results = {sample: files}
 

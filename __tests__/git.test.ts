@@ -55,9 +55,9 @@ describe('parsing output of the git diff command', () => {
 
   test('groupFilesByStatus groups files by their change status', () => {
     const grouped = git.groupFilesByStatus([
-      {filename: 'a', status: ChangeStatus.Added},
-      {filename: 'b', status: ChangeStatus.Added},
-      {filename: 'c', status: ChangeStatus.Modified}
+      {filename: 'a', status: ChangeStatus.Added, from: 'a'},
+      {filename: 'b', status: ChangeStatus.Added, from: 'b'},
+      {filename: 'c', status: ChangeStatus.Modified, from: 'c'}
     ])
 
     expect(grouped[ChangeStatus.Added].length).toBe(2)

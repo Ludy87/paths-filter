@@ -224,7 +224,7 @@ describe('matching specific change status', () => {
       - added: "**/*"
     `
     let filter = new Filter(yaml)
-    const files = [{status: ChangeStatus.Added, filename: 'file.js'}]
+    const files = [{status: ChangeStatus.Added, filename: 'file.js', from: 'file.js'}]
     const match = filter.match(files)
     expect(match.add).toEqual(files)
   })
@@ -235,7 +235,7 @@ describe('matching specific change status', () => {
       - added|modified: "**/*"
     `
     let filter = new Filter(yaml)
-    const files = [{status: ChangeStatus.Modified, filename: 'file.js'}]
+    const files = [{status: ChangeStatus.Modified, filename: 'file.js', from: 'file.js'}]
     const match = filter.match(files)
     expect(match.addOrModify).toEqual(files)
   })
@@ -247,7 +247,7 @@ describe('matching specific change status', () => {
       - "test.txt"
     `
     let filter = new Filter(yaml)
-    const files = [{status: ChangeStatus.Renamed, filename: 'file.js'}]
+    const files = [{status: ChangeStatus.Renamed, filename: 'file.js', from: 'file.js'}]
     const match = filter.match(files)
     expect(match.rename).toEqual(files)
   })
@@ -261,7 +261,7 @@ describe('matching specific change status', () => {
       - modified: *shared
     `
     let filter = new Filter(yaml)
-    const files = modified(['config/file.js', 'common/anotherFile.js'])
+    const files = modified(['config/file', 'common/anotherFile.js'])
     const match = filter.match(files)
     expect(match.src).toEqual(files)
   })
@@ -269,12 +269,12 @@ describe('matching specific change status', () => {
 
 function modified(paths: string[]): File[] {
   return paths.map(filename => {
-    return {filename, status: ChangeStatus.Modified}
+    return {filename, status: ChangeStatus.Modified, from: filename}
   })
 }
 
 function renamed(paths: string[]): File[] {
   return paths.map(filename => {
-    return {filename, status: ChangeStatus.Renamed}
+    return {filename, status: ChangeStatus.Renamed, from: filename}
   })
 }

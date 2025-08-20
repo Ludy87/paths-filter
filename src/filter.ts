@@ -107,6 +107,7 @@ export class Filter {
     for (const [key, patterns] of Object.entries(this.rules)) {
       core.info(`Applying filter '${key}' with patterns: ${JSON.stringify(patterns)}`)
       result[key] = files.filter(file => this.isMatch(file, patterns))
+      core.info(`Matched files for filter '${key}': ${JSON.stringify(result[key])}`)
     }
     core.endGroup()
     return result
@@ -114,7 +115,7 @@ export class Filter {
 
   private isMatch(file: File, patterns: FilterRuleItem[]): boolean {
     const aPredicate = (rule: Readonly<FilterRuleItem>): boolean => {
-      return (rule.status === undefined || rule.status.includes(file.status)) && rule.isMatch(file.filename)
+      return (rule.status === undefined || rule.status.includes(file.status)) && rule.isMatch(file.from)
     }
 
     const positives = patterns.filter(p => !p.negate)

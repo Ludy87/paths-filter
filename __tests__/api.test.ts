@@ -56,7 +56,7 @@ describe('getChangedFilesFromApi', () => {
       yield {
         status: 200,
         data: [
-          {filename: 'deleted.txt', status: 'removed'},
+          {filename: 'deleted.txt', status: 'removed', from: 'deleted.txt'},
           {filename: 'new.txt', status: ChangeStatus.Renamed, previous_filename: 'old.txt'},
           {filename: 'cp.txt', status: ChangeStatus.Copied, previous_filename: 'orig.txt'}
         ]
@@ -73,7 +73,7 @@ describe('getChangedFilesFromApi', () => {
     // Wie gehabt: rename → Added (neu) + Deleted (alt)
     // Neu: copied behält "from"
     expect(files).toEqual([
-      {filename: 'deleted.txt', status: ChangeStatus.Deleted},
+      {filename: 'deleted.txt', status: ChangeStatus.Deleted, from: 'deleted.txt'},
       {filename: 'old.txt', status: ChangeStatus.Renamed, from: 'old.txt', to: 'new.txt'},
       {filename: 'cp.txt', status: ChangeStatus.Copied, from: 'orig.txt', to: 'cp.txt'}
     ])

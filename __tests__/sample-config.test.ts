@@ -8,7 +8,7 @@ describe('sample configuration file', () => {
     const yamlPath = path.join(__dirname, 'fixtures', 'sample-filter.yml')
     const yaml = fs.readFileSync(yamlPath, 'utf8')
     const filter = new Filter(yaml)
-    const files = [{filename: 'src/index.ts', status: ChangeStatus.Modified}]
+    const files = [{filename: 'src/index.ts', status: ChangeStatus.Modified, from: 'src/index.ts'}]
     const match = filter.match(files)
     expect(match.sample).toEqual(files)
   })

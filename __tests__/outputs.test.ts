@@ -16,8 +16,8 @@ describe('all_changed and any_changed outputs', () => {
 
   test('reports true when all filters changed', () => {
     const results = {
-      src: [{filename: 'src/file.ts', status: ChangeStatus.Modified}],
-      docs: [{filename: 'docs/readme.md', status: ChangeStatus.Added}]
+      src: [{filename: 'src/file.ts', status: ChangeStatus.Modified, from: 'src/file.ts'}],
+      docs: [{filename: 'docs/readme.md', status: ChangeStatus.Added, from: 'docs/readme.md'}]
     }
     exportResults(results, 'none')
     expect(core.setOutput).toHaveBeenCalledWith('all_changed', true)
@@ -26,7 +26,7 @@ describe('all_changed and any_changed outputs', () => {
 
   test('reports false for all_changed when some filters unchanged', () => {
     const results = {
-      src: [{filename: 'src/file.ts', status: ChangeStatus.Modified}],
+      src: [{filename: 'src/file.ts', status: ChangeStatus.Modified, from: 'src/file.ts'}],
       docs: []
     }
     exportResults(results, 'none')
