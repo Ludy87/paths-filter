@@ -35,16 +35,16 @@ describe('parsing output of the git diff command', () => {
 
     const files = git.parseGitDiffOutput(payload)
 
-    // Prüfe per Subset-Match die wesentlichen Felder
+    // Check essential fields using subset match
     expect(files).toMatchObject([
       {filename: 'src/c/copied75.ts', status: ChangeStatus.Copied, from: 'src/copied75.ts', similarity: 75},
       {filename: 'src/renamed100.ts', status: ChangeStatus.Renamed, from: 'src/renamed100_old.ts', similarity: 100},
       {filename: 'src/conflict.ts', status: ChangeStatus.Unmerged},
-      {filename: 'src/c/copied.ts', status: ChangeStatus.Copied, from: 'src/copied.ts'}, // ohne Score
-      {filename: 'src/renamed.ts', status: ChangeStatus.Renamed, from: 'src/renamed_old.ts'} // ohne Score
+      {filename: 'src/c/copied.ts', status: ChangeStatus.Copied, from: 'src/copied.ts'}, // no score
+      {filename: 'src/renamed.ts', status: ChangeStatus.Renamed, from: 'src/renamed_old.ts'} // no score
     ])
 
-    // Optional: explizit sicherstellen, dass bei Einträgen ohne Zahl kein similarity-Field gesetzt ist
+    // Optionally ensure entries without a similarity score omit the similarity field
     expect(files[3].similarity).toBeUndefined()
     expect(files[4].similarity).toBeUndefined()
   })
