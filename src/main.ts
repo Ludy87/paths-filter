@@ -217,6 +217,12 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
             filename: 'previous_filename' in row ? (row.previous_filename as string) : '',
             status: ChangeStatus.Deleted
           })
+        } else if (row.status === ChangeStatus.Copied) {
+          files.push({
+            filename: row.filename,
+            status: ChangeStatus.Copied,
+            from: 'previous_filename' in row ? (row.previous_filename as string) : undefined
+          })
         } else {
           // Github status and git status variants are same except for deleted files
           const status = row.status === 'removed' ? ChangeStatus.Deleted : (row.status as ChangeStatus)
@@ -311,4 +317,4 @@ if (require.main === module) {
   void run()
 }
 
-export {run}
+export {run, getChangedFilesFromApi}

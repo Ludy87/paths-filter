@@ -1,6 +1,8 @@
 export interface File {
   filename: string
   status: ChangeStatus
+  from?: string
+  similarity?: number
 }
 
 export enum ChangeStatus {
@@ -10,4 +12,13 @@ export enum ChangeStatus {
   Modified = 'modified',
   Renamed = 'renamed',
   Unmerged = 'unmerged'
+}
+
+export const statusMap: Record<'A' | 'M' | 'D' | 'R' | 'C' | 'U', ChangeStatus> = {
+  A: ChangeStatus.Added,
+  M: ChangeStatus.Modified,
+  D: ChangeStatus.Deleted,
+  R: ChangeStatus.Renamed,
+  C: ChangeStatus.Copied,
+  U: ChangeStatus.Unmerged
 }

@@ -240,6 +240,18 @@ describe('matching specific change status', () => {
     expect(match.addOrModify).toEqual(files)
   })
 
+  test('matches when renamed status is configured', () => {
+    const yaml = `
+    rename:
+      - renamed: "file.js"
+      - "test.txt"
+    `
+    let filter = new Filter(yaml)
+    const files = [{status: ChangeStatus.Renamed, filename: 'file.js'}]
+    const match = filter.match(files)
+    expect(match.rename).toEqual(files)
+  })
+
   test('matches when using an anchor', () => {
     const yaml = `
     shared: &shared
