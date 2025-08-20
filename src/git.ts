@@ -157,7 +157,7 @@ export function parseGitDiffOutput(output: string): File[] {
     const status = statusMap[kind] // mappt "R100" -> Renamed
     const maybeSim = Number.parseInt(code.slice(1), 10)
     const similarity = Number.isFinite(maybeSim) ? maybeSim : undefined
-
+    core.info(`Processing code: ${code} -> status: ${status}, similarity: ${similarity}`)
     if (kind === 'R' || kind === 'C') {
       const from = tokens[i++]
       const to = tokens[i++]
