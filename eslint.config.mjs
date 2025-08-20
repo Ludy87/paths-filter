@@ -11,10 +11,10 @@ export default [
 
   js.configs.recommended,
 
-  ...tseslint.configs.recommendedTypeChecked,
+  ...tseslint.configs.recommended,
 
   {
-    files: ['**/*.ts', '**/*.tsx'],
+    files: ['src/**/*.{ts,tsx}'],
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
@@ -33,18 +33,12 @@ export default [
       'import/no-namespace': 'off',
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': 'error',
-      '@typescript-eslint/explicit-member-accessibility': [
-        'error',
-        { accessibility: 'no-public' }
-      ],
+      '@typescript-eslint/explicit-member-accessibility': ['error', {accessibility: 'no-public'}],
       '@typescript-eslint/no-require-imports': 'error',
       '@typescript-eslint/array-type': 'error',
       '@typescript-eslint/await-thenable': 'error',
-      'camelcase': 'off',
-      '@typescript-eslint/explicit-function-return-type': [
-        'error',
-        { allowExpressions: true }
-      ],
+      camelcase: 'off',
+      '@typescript-eslint/explicit-function-return-type': ['error', {allowExpressions: true}],
       '@/func-call-spacing': ['error', 'never'],
       '@/no-array-constructor': 'error',
       '@typescript-eslint/no-empty-interface': 'error',
@@ -63,13 +57,10 @@ export default [
       '@typescript-eslint/prefer-function-type': 'warn',
       '@typescript-eslint/prefer-includes': 'error',
       '@typescript-eslint/prefer-string-starts-ends-with': 'error',
-      '@typescript-eslint/promise-function-async': [
-        'error',
-        { allowAny: true }
-      ],
+      '@typescript-eslint/promise-function-async': ['error', {allowAny: true}],
       '@typescript-eslint/require-array-sort-compare': 'error',
       '@typescript-eslint/restrict-plus-operands': 'error',
-      'semi': 'off',
+      semi: 'off',
       '@/semi': ['error', 'never'],
       '@typescript-eslint/unbound-method': 'error'
     }
@@ -81,6 +72,11 @@ export default [
       ...jest.configs.recommended.rules
     },
     languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        project: ['./tsconfig.test.json'],
+        tsconfigRootDir: import.meta.dirname
+      },
       globals: {
         describe: 'readonly',
         it: 'readonly',
@@ -91,6 +87,7 @@ export default [
         beforeEach: 'readonly',
         afterEach: 'readonly'
       }
-    }
+    },
+    rules: {...jest.configs.recommended.rules}
   }
 ]

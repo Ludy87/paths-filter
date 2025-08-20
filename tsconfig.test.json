@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": [
+      "jest",
+      "node"
+    ]
+  },
+  "include": [
+    "__tests__/**/*.{ts,tsx}"
+  ],
+  "exclude": [
+    "node_modules"
+  ] // überschreibt das exclude des Basis-Projekts
+}
