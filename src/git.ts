@@ -39,6 +39,7 @@ export async function getChanges(base: string, head: string): Promise<File[]> {
         `${baseRef}..${headRef}`
       ])
     ).stdout
+    core.info(`Changes detected: ${output}`)
   } finally {
     fixStdOutNullTermination()
     core.endGroup()

@@ -286,7 +286,12 @@ export function exportResults(results: FilterResults, format: ExportFormat): voi
       anyChanged = true
       core.info('Matching files:')
       for (const file of files) {
-        core.info(`${file.filename} [${file.status}]`)
+        const filePrevious = 'previous_filename' in file ? (file.previous_filename as string) : undefined
+        if (filePrevious === undefined) {
+          core.info(`${file.filename} [${file.status}]`)
+        } else {
+          core.info(`[Trigger file: ${filePrevious}] - ${file.filename} [${file.status}]`)
+        }
       }
     } else {
       core.info('Matching files: none')
