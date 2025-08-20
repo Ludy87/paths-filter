@@ -30,7 +30,7 @@ export async function getChanges(base: string, head: string): Promise<File[]> {
     // Two dots '..' change detection - directly compares two versions
     // output = (await getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', `${baseRef}..${headRef}`])).stdout
     output = (
-      await getExecOutput('git', ['diff', '--name-status', '-find-copies-harder', '-z', '-M', `${baseRef}..${headRef}`])
+      await getExecOutput('git', ['diff', '--name-status', '--find-copies-harder', '-z', '-M', `${baseRef}..${headRef}`])
     ).stdout
   } finally {
     fixStdOutNullTermination()
@@ -46,7 +46,7 @@ export async function getChangesOnHead(): Promise<File[]> {
   let output = ''
   try {
     // output = (await getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', 'HEAD'])).stdout
-    output = (await getExecOutput('git', ['diff', '--name-status', '-find-copies-harder', '-z', '-M', 'HEAD'])).stdout
+    output = (await getExecOutput('git', ['diff', '--name-status', '--find-copies-harder', '-z', '-M', 'HEAD'])).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
