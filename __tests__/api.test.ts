@@ -72,8 +72,7 @@ describe('getChangedFilesFromApi', () => {
     // Neu: copied behält "from"
     expect(files).toEqual([
       {filename: 'deleted.txt', status: ChangeStatus.Deleted},
-      {filename: 'new.txt', status: ChangeStatus.Added},
-      {filename: 'old.txt', status: ChangeStatus.Deleted},
+      {filename: 'new.txt', status: ChangeStatus.Renamed, from: 'old.txt'},
       {filename: 'cp.txt', status: ChangeStatus.Copied, from: 'orig.txt'}
     ])
 

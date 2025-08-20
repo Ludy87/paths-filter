@@ -211,13 +211,18 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
           core.info(`Renamed file detected: ${row.filename} (previous: ${row.previous_filename})`)
           files.push({
             filename: row.filename,
-            status: ChangeStatus.Added
+            status: ChangeStatus.Renamed,
+            from: 'previous_filename' in row ? (row.previous_filename as string) : undefined
           })
-          files.push({
-            // 'previous_filename' for some unknown reason isn't in the type definition or documentation
-            filename: 'previous_filename' in row ? (row.previous_filename as string) : '',
-            status: ChangeStatus.Deleted
-          })
+          // files.push({
+          //   filename: row.filename,
+          //   status: ChangeStatus.Added
+          // })
+          // files.push({
+          //   // 'previous_filename' for some unknown reason isn't in the type definition or documentation
+          //   filename: 'previous_filename' in row ? (row.previous_filename as string) : '',
+          //   status: ChangeStatus.Deleted
+          // })
         } else if (row.status === ChangeStatus.Copied) {
           core.info(`Copied file detected: ${row.filename} (previous: ${row.previous_filename})`)
           files.push({
