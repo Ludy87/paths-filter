@@ -252,9 +252,11 @@ export function exportResults(results: FilterResults, format: ExportFormat): voi
   for (const [key, files] of Object.entries(results)) {
     const value = files.length > 0
     if (value) {
+      core.info(`${files.length} files`)
       counter++
     }
     core.startGroup(`Filter ${key} = ${value}`)
+    core.info(`Filter ${key} matched ${files.length} files`)
     if (files.length > 0) {
       changes.push(key)
       anyChanged = true
