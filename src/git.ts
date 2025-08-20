@@ -145,16 +145,15 @@ export function parseGitDiffOutput(output: string): File[] {
     const status = statusMap[kind] // mappt "R100" → Renamed usw.
 
     if (kind === 'R' || kind === 'C') {
-      // Drei Tokens: STATUS, ALT, NEU
-      // ALT überspringen (oder bei Bedarf speichern)
-      // const oldName = tokens[i++]
-      i++ // altes Filename-Token überspringen
+      const oldName = tokens[i++]
+      // i++ // altes Filename-Token überspringen
       const newName = tokens[i++]
+      core.info(`Renaming ${oldName} to ${newName}`)
       if (newName === undefined) {
         core.warning(`Incomplete rename/copy record for code "${code}"`)
         continue
       }
-      files.push({status, filename: newName /*, oldFilename: oldName */})
+      files.push({status, filename: newName})
     } else {
       // Zwei Tokens: STATUS, PFAD
       const name = tokens[i++]
