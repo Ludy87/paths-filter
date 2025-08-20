@@ -17,12 +17,18 @@ describe('parsing output of the git diff command', () => {
 
   test('parseGitDiffOutput handles copied, renamed and unmerged statuses', async () => {
     const files = git.parseGitDiffOutput(
-      'C\u0000src/copied.ts\u0000' + 'R\u0000src/renamed.ts\u0000' + 'U\u0000src/conflict.ts\u0000'
+      'C75\u0000src/copied75.ts\u0000' +
+        'R100\u0000src/renamed100.ts\u0000' +
+        'U\u0000src/conflict.ts\u0000' +
+        'C\u0000src/copied.ts\u0000' +
+        'R\u0000src/renamed.ts\u0000'
     )
     expect(files).toEqual([
+      {filename: 'src/copied75.ts', status: ChangeStatus.Copied},
+      {filename: 'src/renamed100.ts', status: ChangeStatus.Renamed},
+      {filename: 'src/conflict.ts', status: ChangeStatus.Unmerged},
       {filename: 'src/copied.ts', status: ChangeStatus.Copied},
-      {filename: 'src/renamed.ts', status: ChangeStatus.Renamed},
-      {filename: 'src/conflict.ts', status: ChangeStatus.Unmerged}
+      {filename: 'src/renamed.ts', status: ChangeStatus.Renamed}
     ])
   })
 

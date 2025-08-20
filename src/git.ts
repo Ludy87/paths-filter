@@ -139,7 +139,7 @@ export function parseGitDiffOutput(output: string): File[] {
   const files: File[] = []
   for (let i = 0; i + 1 < tokens.length; i += 2) {
     files.push({
-      status: statusMap[tokens[i]],
+      status: statusMap[tokens[i][0]],
       filename: tokens[i + 1]
     })
   }
