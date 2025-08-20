@@ -1,5 +1,10 @@
 # Changelog
 
+## v3.2.0
+- [refactor: normalize file change statuses and enhance test coverage for copied/renamed handling](https://github.com/Ludy87/paths-filter/pull/42)
+- [chore: translate German test comments](https://github.com/Ludy87/paths-filter/pull/44)
+- [refactor: use native array flat](https://github.com/Ludy87/paths-filter/pull/45)
+
 ## v3.1.2
 - [Fix all_changed output logic in exportResults](https://github.com/Ludy87/paths-filter/pull/33)
 - [Update copyright and author information](https://github.com/Ludy87/paths-filter/pull/34)
