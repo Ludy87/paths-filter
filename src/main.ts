@@ -209,11 +209,21 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
         // Rename is replaced by delete of original filename and add of new filename
         if (row.status === ChangeStatus.Renamed) {
           core.info(`Renamed file detected: ${row.filename} (previous: ${row.previous_filename})`)
-          files.push({
-            filename: row.filename,
-            status: ChangeStatus.Renamed,
-            from: 'previous_filename' in row ? (row.previous_filename as string) : undefined
-          })
+          const previousFilename = 'previous_filename' in row ? (row.previous_filename as string) : undefined
+          if (previousFilename === undefined) {
+            core.warning(`Renamed file detected but previous filename is missing: ${row.filename}`)
+            files.push({
+              filename: row.filename,
+              status: ChangeStatus.Added
+            })
+          } else {
+            files.push({
+              from: previousFilename,
+              to: row.filename,
+              status: ChangeStatus.Renamed,
+              filename: previousFilename
+            })
+          }
           // files.push({
           //   filename: row.filename,
           //   status: ChangeStatus.Added
@@ -225,11 +235,20 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
           // })
         } else if (row.status === ChangeStatus.Copied) {
           core.info(`Copied file detected: ${row.filename} (previous: ${row.previous_filename})`)
-          files.push({
-            filename: row.filename,
-            status: ChangeStatus.Copied,
-            from: 'previous_filename' in row ? (row.previous_filename as string) : undefined
-          })
+          const previousFilename = 'previous_filename' in row ? (row.previous_filename as string) : undefined
+          if (previousFilename === undefined) {
+            core.warning(`Copied file detected but previous filename is missing: ${row.filename}`)
+            files.push({
+              filename: row.filename,
+              status: ChangeStatus.Added
+            })
+          } else {
+            files.push({
+              filename: row.filename,
+              status: ChangeStatus.Copied,
+              from: previousFilename
+            })
+          }
         } else {
           // Github status and git status variants are same except for deleted files
           const status = row.status === 'removed' ? ChangeStatus.Deleted : (row.status as ChangeStatus)
