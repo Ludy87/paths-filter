@@ -208,6 +208,7 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
         // Therefore we treat it as if rename detection in git diff was turned off.
         // Rename is replaced by delete of original filename and add of new filename
         if (row.status === ChangeStatus.Renamed) {
+          core.info(`Renamed file detected: ${row.filename} (previous: ${row.previous_filename})`)
           files.push({
             filename: row.filename,
             status: ChangeStatus.Added
@@ -218,6 +219,7 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
             status: ChangeStatus.Deleted
           })
         } else if (row.status === ChangeStatus.Copied) {
+          core.info(`Copied file detected: ${row.filename} (previous: ${row.previous_filename})`)
           files.push({
             filename: row.filename,
             status: ChangeStatus.Copied,
@@ -230,6 +232,7 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
             filename: row.filename,
             status
           })
+          core.info(`Unstaged changes detected: ${row.filename}`)
         }
       }
     }

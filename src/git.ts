@@ -54,6 +54,7 @@ export async function getChangesOnHead(): Promise<File[]> {
   try {
     // output = (await getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', 'HEAD'])).stdout
     output = (await getExecOutput('git', ['diff', '--name-status', '--find-copies-harder', '-z', '-M', 'HEAD'])).stdout
+    core.info(`Changes detected: ${output}`)
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -135,6 +136,7 @@ export async function getChangesSinceMergeBase(base: string, head: string, initi
   let output = ''
   try {
     output = (await getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', diffArg])).stdout
+    core.info(`Changes detected: ${output}`)
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
