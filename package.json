@@ -1,7 +1,7 @@
 {
   "name": "paths-filter",
   "version": "3.3.0",
-  "type": "module",
+  "type": "commonjs",
   "engines": {
     "node": ">= 20"
   },
