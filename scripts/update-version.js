@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+const { readFileSync, writeFileSync, existsSync } = require('node:fs')
 
 function bump(version, release) {
   const parts = version.split('.').map(Number)
