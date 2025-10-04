@@ -1,20 +1,20 @@
-import {ChangeStatus} from '../src/file'
-import {exportResults} from '../src/main'
+import { ChangeStatus } from '../src/file'
+import { exportResults } from '../src/main'
 import * as core from '@actions/core'
 
 jest.mock('@actions/core', () => ({
   info: jest.fn(),
   startGroup: jest.fn(),
   endGroup: jest.fn(),
-  setOutput: jest.fn()
+  setOutput: jest.fn(),
 }))
 
 describe('exportResults file listing formats', () => {
   const files = [
-    {filename: 'simple.txt', status: ChangeStatus.Modified, from: 'simple.txt'},
-    {filename: 'file with space.txt', status: ChangeStatus.Added, from: 'file with space.txt'}
+    { filename: 'simple.txt', status: ChangeStatus.Modified, from: 'simple.txt' },
+    { filename: 'file with space.txt', status: ChangeStatus.Added, from: 'file with space.txt' },
   ]
-  const results = {sample: files}
+  const results = { sample: files }
 
   beforeEach(() => {
     jest.clearAllMocks()

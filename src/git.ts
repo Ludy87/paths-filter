@@ -1,6 +1,6 @@
-import {getExecOutput} from '@actions/exec'
+import { getExecOutput } from '@actions/exec'
 import * as core from '@actions/core'
-import {File, ChangeStatus} from './file'
+import { File, ChangeStatus } from './file'
 
 export const NULL_SHA = '0000000000000000000000000000000000000000'
 export const HEAD = 'HEAD'
@@ -36,7 +36,7 @@ export async function getChanges(base: string, head: string): Promise<File[]> {
         '--find-copies-harder',
         '-z',
         '-M',
-        `${baseRef}..${headRef}`
+        `${baseRef}..${headRef}`,
       ])
     ).stdout
   } finally {
@@ -69,7 +69,7 @@ export async function getChangesSinceMergeBase(base: string, head: string, initi
     if (baseRef === undefined || headRef === undefined) {
       return false
     }
-    return (await getExecOutput('git', ['merge-base', baseRef, headRef], {ignoreReturnCode: true})).exitCode === 0
+    return (await getExecOutput('git', ['merge-base', baseRef, headRef], { ignoreReturnCode: true })).exitCode === 0
   }
 
   let noMergeBase = false
@@ -84,18 +84,18 @@ export async function getChangesSinceMergeBase(base: string, head: string, initi
         headRef = headRef ?? (await getLocalRef(head))
         if (baseRef === undefined || headRef === undefined) {
           await getExecOutput('git', ['fetch', '--tags', '--depth=1', 'origin', base, head], {
-            ignoreReturnCode: true // returns exit code 1 if tags on remote were updated - we can safely ignore it
+            ignoreReturnCode: true, // returns exit code 1 if tags on remote were updated - we can safely ignore it
           })
           baseRef = baseRef ?? (await getLocalRef(base))
           headRef = headRef ?? (await getLocalRef(head))
           if (baseRef === undefined) {
             throw new Error(
-              `Could not determine what is ${base} - fetch works but it's not a branch, tag or commit SHA`
+              `Could not determine what is ${base} - fetch works but it's not a branch, tag or commit SHA`,
             )
           }
           if (headRef === undefined) {
             throw new Error(
-              `Could not determine what is ${head} - fetch works but it's not a branch, tag or commit SHA`
+              `Could not determine what is ${head} - fetch works but it's not a branch, tag or commit SHA`,
             )
           }
         }
@@ -164,14 +164,14 @@ export function parseGitDiffOutput(output: string): File[] {
         core.warning(`Missing new filename for code "${code}"`)
         continue
       }
-      files.push({status, filename: to, from, similarity})
+      files.push({ status, filename: to, from, similarity })
     } else {
       const name = tokens[i++]
       if (name === undefined) {
         core.warning(`Missing filename for code "${code}"`)
         continue
       }
-      files.push({status, filename: name, from: name})
+      files.push({ status, filename: name, from: name })
     }
   }
 
@@ -190,11 +190,11 @@ export async function listAllFilesAsAdded(): Promise<File[]> {
 
   return output
     .split('\u0000')
-    .filter(s => s.length > 0)
-    .map(path => ({
+    .filter((s) => s.length > 0)
+    .map((path) => ({
       status: ChangeStatus.Added,
       filename: path,
-      from: path
+      from: path,
     }))
 }
 
@@ -206,7 +206,7 @@ export async function getCurrentRef(): Promise<string> {
       return branch
     }
 
-    const describe = await getExecOutput('git', ['describe', '--tags', '--exact-match'], {ignoreReturnCode: true})
+    const describe = await getExecOutput('git', ['describe', '--tags', '--exact-match'], { ignoreReturnCode: true })
     if (describe.exitCode === 0) {
       return describe.stdout.trim()
     }
@@ -234,7 +234,7 @@ export function isGitSha(ref: string): boolean {
 }
 
 async function hasCommit(ref: string): Promise<boolean> {
-  return (await getExecOutput('git', ['cat-file', '-e', `${ref}^{commit}`], {ignoreReturnCode: true})).exitCode === 0
+  return (await getExecOutput('git', ['cat-file', '-e', `${ref}^{commit}`], { ignoreReturnCode: true })).exitCode === 0
 }
 
 async function getCommitCount(): Promise<number> {
@@ -248,18 +248,18 @@ async function getLocalRef(shortName: string): Promise<string | undefined> {
     return (await hasCommit(shortName)) ? shortName : undefined
   }
 
-  const output = (await getExecOutput('git', ['show-ref', shortName], {ignoreReturnCode: true})).stdout
+  const output = (await getExecOutput('git', ['show-ref', shortName], { ignoreReturnCode: true })).stdout
   const refs = output
     .split(/\r?\n/g)
-    .map(l => l.match(/refs\/(?:(?:heads)|(?:tags)|(?:remotes\/origin))\/(.*)$/))
-    .filter(match => match !== null && match[1] === shortName)
-    .map(match => match?.[0] ?? '') // match can't be null here but compiler doesn't understand that
+    .map((l) => l.match(/refs\/(?:(?:heads)|(?:tags)|(?:remotes\/origin))\/(.*)$/))
+    .filter((match) => match !== null && match[1] === shortName)
+    .map((match) => match?.[0] ?? '') // match can't be null here but compiler doesn't understand that
 
   if (refs.length === 0) {
     return undefined
   }
 
-  const remoteRef = refs.find(ref => ref.startsWith('refs/remotes/origin/'))
+  const remoteRef = refs.find((ref) => ref.startsWith('refs/remotes/origin/'))
   if (remoteRef) {
     return remoteRef
   }
@@ -296,13 +296,13 @@ function fixStdOutNullTermination(): void {
   core.info('')
 }
 
-const statusMap: {[char: string]: ChangeStatus} = {
+const statusMap: { [char: string]: ChangeStatus } = {
   A: ChangeStatus.Added,
   C: ChangeStatus.Copied,
   D: ChangeStatus.Deleted,
   M: ChangeStatus.Modified,
   R: ChangeStatus.Renamed,
-  U: ChangeStatus.Unmerged
+  U: ChangeStatus.Unmerged,
 }
 
 export function getChangeStatus(code: string): ChangeStatus {
@@ -320,7 +320,7 @@ export function groupFilesByStatus(files: File[]): Record<ChangeStatus, File[]> 
     [ChangeStatus.Deleted]: [],
     [ChangeStatus.Modified]: [],
     [ChangeStatus.Renamed]: [],
-    [ChangeStatus.Unmerged]: []
+    [ChangeStatus.Unmerged]: [],
   }
 
   for (const file of files) {

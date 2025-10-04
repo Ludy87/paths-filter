@@ -1,12 +1,14 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "rootDir": ".",
     "types": [
       "jest",
       "node"
     ]
   },
   "include": [
+    "src/**/*.ts",
     "__tests__/**/*.{ts,tsx}"
   ],
   "exclude": [

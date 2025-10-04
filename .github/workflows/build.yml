@@ -4,7 +4,7 @@ name: "Build"
 
 on:
   push:
-    paths-ignore: [ '*.md' ]
+    paths-ignore: ["*.md"]
     branches:
       - master
 
@@ -24,23 +24,23 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: 20
-        cache: 'npm'
-    - run: |
-        npm install
-        npm run all
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20
+          cache: "npm"
+      - run: |
+          npm install
+          npm run all
 
   self-test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - uses: ./
-      id: filter
-      with:
-        filters: '.github/filters.yml'
-    - name: filter-test
-      if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
-      run: exit 1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: ./
+        id: filter
+        with:
+          filters: ".github/filters.yml"
+      - name: filter-test
+        if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
+        run: exit 1

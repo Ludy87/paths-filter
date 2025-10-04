@@ -1,21 +1,28 @@
 {
   "name": "paths-filter",
-  "version": "3.2.0",
+  "version": "3.3.0",
+  "type": "commonjs",
   "engines": {
     "node": ">= 20"
   },
   "private": true,
   "description": "Execute your workflow steps only if relevant files are modified.",
-  "main": "lib/main.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "format": "prettier --write **/*.ts",
     "format-check": "prettier --check **/*.ts",
     "lint": "eslint src/**/*.ts",
-    "pack": "ncc build -m --license licenses.txt",
+    "pack": "ncc build src/main.ts -m --license licenses.txt",
     "test": "jest",
     "all": "npm run build && npm run format && npm run lint && npm run pack && npm test",
-    "bump-version": "node scripts/update-version.js"
+    "remove-dist": "rm -rf lib/ dist/ licenses.txt",
+    "remove-dist-win": "rd /s /q lib && rd /s /q dist && del licenses.txt",
+    "bump-version": "node scripts/update-version.js",
+    "update:minor": "npm outdated || npm update && npm audit fix && npm test",
+    "update:major": "npx npm-check-updates -u && npm install",
+    "update:interactive": "npx npm-check-updates -i",
+    "update:minor-strict": "npx npm-check-updates -u --target minor && npm install"
   },
   "repository": {
     "type": "git",
@@ -38,24 +45,23 @@
     "@octokit/webhooks-types": "7.6.1",
     "@types/jest": "30.0.0",
     "@types/js-yaml": "4.0.9",
-    "@types/node": "24.3.0",
+    "@types/node": "24.6.2",
     "@types/picomatch": "4.0.2",
-    "@vercel/ncc": "0.38.3",
+    "@vercel/ncc": "0.38.4",
     "eslint-plugin-jest": "29.0.1",
-    "jest": "30.0.5",
+    "jest": "30.2.0",
     "js-yaml": "4.1.0",
     "prettier": "3.6.2",
-    "ts-jest": "29.4.1",
-    "typescript": "5.9.2",
-    "@typescript-eslint/utils": "8.40.0",
+    "ts-jest": "29.4.4",
+    "typescript": "5.9.3",
     "eslint-plugin-github": "^6.0.0",
-    "eslint": "^9.33.0",
-    "@typescript-eslint/eslint-plugin": "8.40.0",
-    "@typescript-eslint/parser": "8.40.0"
+    "eslint": "^9.37.0",
+    "@typescript-eslint/eslint-plugin": "8.45.0",
+    "@typescript-eslint/parser": "8.45.0"
   },
   "overrides": {
-    "eslint": "^9.33.0",
-    "@typescript-eslint/eslint-plugin": "8.40.0",
-    "@typescript-eslint/parser": "8.40.0"
+    "eslint": "^9.37.0",
+    "@typescript-eslint/eslint-plugin": "8.45.0",
+    "@typescript-eslint/parser": "8.45.0"
   }
 }

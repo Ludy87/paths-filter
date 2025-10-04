@@ -1,5 +1,5 @@
-import {Filter} from '../src/filter'
-import {ChangeStatus} from '../src/file'
+import { Filter } from '../src/filter'
+import { ChangeStatus } from '../src/file'
 
 describe('sample filter usage', () => {
   test('matches files in sample folder', () => {
@@ -8,7 +8,7 @@ describe('sample filter usage', () => {
       - sample/**
     `
     const filter = new Filter(yaml)
-    const files = [{filename: 'sample/example.ts', status: ChangeStatus.Modified, from: 'sample/example.ts'}]
+    const files = [{ filename: 'sample/example.ts', status: ChangeStatus.Modified, from: 'sample/example.ts' }]
     const match = filter.match(files)
     expect(match.sample).toEqual(files)
   })
@@ -19,7 +19,7 @@ describe('sample filter usage', () => {
       - sample/**
     `
     const filter = new Filter(yaml)
-    const files = [{filename: 'other/example.ts', status: ChangeStatus.Modified, from: 'other/example.ts'}]
+    const files = [{ filename: 'other/example.ts', status: ChangeStatus.Modified, from: 'other/example.ts' }]
     const match = filter.match(files)
     expect(match.sample).toEqual([])
   })

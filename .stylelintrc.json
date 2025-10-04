@@ -1,8 +1,12 @@
 {
-  "extends": [
-    "stylelint-config-standard"
-  ],
-  "plugins": [
-    "@stylistic/stylelint-plugin"
-  ]
+  "$schema": "https://json.schemastore.org/stylelintrc.json",
+  "extends": ["stylelint-config-standard", "@stylistic/stylelint-plugin/recommended"],
+  "plugins": ["@stylistic/stylelint-plugin"],
+  "rules": {
+    "@stylistic/declaration-colon-space-after": "always-single-line",
+    "@stylistic/function-comma-space-after": "always-single-line",
+    "@stylistic/selector-list-comma-newline-after": "always",
+    "color-hex-format": "lower",
+    "color-hex-length": "short"
+  }
 }

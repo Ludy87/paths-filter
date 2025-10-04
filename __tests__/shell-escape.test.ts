@@ -1,4 +1,4 @@
-import {backslashEscape, shellEscape} from '../src/list-format/shell-escape'
+import { backslashEscape, shellEscape } from '../src/list-format/shell-escape'
 
 describe('escape() backslash escapes every character except subset of definitely safe characters', () => {
   test('empty string is returned unchanged', () => {

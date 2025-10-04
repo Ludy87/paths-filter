@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release:
-        description: 'Version increment (patch, minor, major or explicit version)'
+        description: "Version increment (patch, minor, major or explicit version)"
         required: false
         default: patch
 
@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
       - run: npm ci
       - run: node scripts/update-version.js ${{ github.event.inputs.release }}
       - name: Commit changes
@@ -31,4 +31,3 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           git commit -am "chore: bump version to ${VERSION}" || echo "No changes to commit"
           git push
-

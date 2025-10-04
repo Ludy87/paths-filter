@@ -1,17 +1,17 @@
 name: "Pull Request Verification"
 on:
   pull_request:
-    paths-ignore: [ '*.md' ]
+    paths-ignore: ["*.md"]
     branches:
       - master
-      - '**'
+      - "**"
 
   workflow_dispatch:
     inputs:
       example_input:
-        description: 'An example input for manual triggering'
+        description: "An example input for manual triggering"
         required: false
-        default: 'default_value'
+        default: "default_value"
 
 # cancel in-progress jobs if a new job is triggered
 # This is useful to avoid running multiple builds for the same branch if a new commit is pushed
@@ -31,393 +31,393 @@ jobs:
     permissions:
       pull-requests: read
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: 20
-        cache: 'npm'
-    - run: |
-        npm install
-        npm run all
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20
+          cache: "npm"
+      - run: |
+          npm install
+          npm run all
 
   test-inline:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - uses: ./
-      id: filter
-      with:
-        filters: |
-          error:
-            - not_existing_path/**/*
-          any:
-            - "**/*"
-    - name: filter-test
-      if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
-      run: exit 1
-    - name: changes-test
-      if: contains(fromJSON(steps.filter.outputs.changes), 'error') || !contains(fromJSON(steps.filter.outputs.changes), 'any')
-      run: exit 1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: ./
+        id: filter
+        with:
+          filters: |
+            error:
+              - not_existing_path/**/*
+            any:
+              - "**/*"
+      - name: filter-test
+        if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
+        run: exit 1
+      - name: changes-test
+        if: contains(fromJSON(steps.filter.outputs.changes), 'error') || !contains(fromJSON(steps.filter.outputs.changes), 'any')
+        run: exit 1
 
   test-external:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - uses: ./
-      id: filter
-      with:
-        filters: '.github/filters.yml'
-    - name: filter-test
-      if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
-      run: exit 1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: ./
+        id: filter
+        with:
+          filters: ".github/filters.yml"
+      - name: filter-test
+        if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
+        run: exit 1
 
   test-without-token:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - uses: ./
-      id: filter
-      with:
-        token: ''
-        filters: '.github/filters.yml'
-    - name: filter-test
-      if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
-      run: exit 1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: ./
+        id: filter
+        with:
+          token: ""
+          filters: ".github/filters.yml"
+      - name: filter-test
+        if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
+        run: exit 1
 
   test-wd-without-token:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      with:
-        path: somewhere
-    - uses: ./somewhere
-      id: filter
-      with:
-        token: ''
-        working-directory: somewhere
-        filters: '.github/filters.yml'
-    - name: filter-test
-      if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
-      run: exit 1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          path: somewhere
+      - uses: ./somewhere
+        id: filter
+        with:
+          token: ""
+          working-directory: somewhere
+          filters: ".github/filters.yml"
+      - name: filter-test
+        if: steps.filter.outputs.any != 'true' || steps.filter.outputs.error == 'true'
+        run: exit 1
 
   test-local-changes:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - run: echo "NEW FILE" > local
-    - run: git add local
-    - uses: ./
-      id: filter
-      with:
-        base: HEAD
-        filters: |
-          local:
-            - local
-    - name: filter-test
-      if: steps.filter.outputs.local != 'true'
-      run: exit 1
-    - name: count-test
-      if: steps.filter.outputs.local_count != 1
-      run: exit 1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - run: echo "NEW FILE" > local
+      - run: git add local
+      - uses: ./
+        id: filter
+        with:
+          base: HEAD
+          filters: |
+            local:
+              - local
+      - name: filter-test
+        if: steps.filter.outputs.local != 'true'
+        run: exit 1
+      - name: count-test
+        if: steps.filter.outputs.local_count != 1
+        run: exit 1
 
   test-change-type-without-token:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - name: configure GIT user
-      run: git config user.email "john@nowhere.local" && git config user.name "John Doe"
-    - name: modify working tree
-      run: touch add.txt && rm README.md && echo "TEST" > LICENSE
-    - name: commit changes
-      run: git add -A && git commit -a -m 'testing this action'
-    - uses: ./
-      id: filter
-      with:
-        token: ''
-        list-files: shell
-        filters: |
-          added:
-            - added: "add.txt"
-          deleted:
-            - deleted: "README.md"
-          modified:
-            - modified: "LICENSE"
-          any:
-            - added|deleted|modified: "*"
-    - name: Print 'added_files'
-      run: echo ${{steps.filter.outputs.added_files}}
-    - name: Print 'modified_files'
-      run: echo ${{steps.filter.outputs.modified_files}}
-    - name: Print 'deleted_files'
-      run: echo ${{steps.filter.outputs.deleted_files}}
-    - name: filter-test
-      if: |
-        steps.filter.outputs.added != 'true' ||
-        steps.filter.outputs.deleted != 'true' ||
-        steps.filter.outputs.modified != 'true' ||
-        steps.filter.outputs.any != 'true' ||
-        steps.filter.outputs.added_files != 'add.txt' ||
-        steps.filter.outputs.modified_files != 'LICENSE' ||
-        steps.filter.outputs.deleted_files != 'README.md' ||
-        steps.filter.outputs.any_changed != 'true' ||
-        steps.filter.outputs.all_changed != 'true'
-      run: exit 1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: configure GIT user
+        run: git config user.email "john@nowhere.local" && git config user.name "John Doe"
+      - name: modify working tree
+        run: touch add.txt && rm README.md && echo "TEST" > LICENSE
+      - name: commit changes
+        run: git add -A && git commit -a -m 'testing this action'
+      - uses: ./
+        id: filter
+        with:
+          token: ""
+          list-files: shell
+          filters: |
+            added:
+              - added: "add.txt"
+            deleted:
+              - deleted: "README.md"
+            modified:
+              - modified: "LICENSE"
+            any:
+              - added|deleted|modified: "*"
+      - name: Print 'added_files'
+        run: echo ${{steps.filter.outputs.added_files}}
+      - name: Print 'modified_files'
+        run: echo ${{steps.filter.outputs.modified_files}}
+      - name: Print 'deleted_files'
+        run: echo ${{steps.filter.outputs.deleted_files}}
+      - name: filter-test
+        if: |
+          steps.filter.outputs.added != 'true' ||
+          steps.filter.outputs.deleted != 'true' ||
+          steps.filter.outputs.modified != 'true' ||
+          steps.filter.outputs.any != 'true' ||
+          steps.filter.outputs.added_files != 'add.txt' ||
+          steps.filter.outputs.modified_files != 'LICENSE' ||
+          steps.filter.outputs.deleted_files != 'README.md' ||
+          steps.filter.outputs.any_changed != 'true' ||
+          steps.filter.outputs.all_changed != 'true'
+        run: exit 1
 
   test-list-files-json:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - run: |
-        echo "ONE" > one.txt
-        echo "TWO" > two.txt
-        git add one.txt two.txt
-    - uses: ./
-      id: filter
-      with:
-        base: HEAD
-        list-files: json
-        filters: |
-          files:
-            - added|modified: '*.txt'
-    - name: filter-test
-      if: steps.filter.outputs.files != 'true'
-      run: exit 1
-    - name: count-test
-      if: steps.filter.outputs.files_count != 2
-      run: exit 1
-    - name: json-test
-      env:
-        FILES: ${{ steps.filter.outputs.files_files }}
-      run: |
-        echo "$FILES" | jq -e 'sort == ["one.txt","two.txt"]'
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - run: |
+          echo "ONE" > one.txt
+          echo "TWO" > two.txt
+          git add one.txt two.txt
+      - uses: ./
+        id: filter
+        with:
+          base: HEAD
+          list-files: json
+          filters: |
+            files:
+              - added|modified: '*.txt'
+      - name: filter-test
+        if: steps.filter.outputs.files != 'true'
+        run: exit 1
+      - name: count-test
+        if: steps.filter.outputs.files_count != 2
+        run: exit 1
+      - name: json-test
+        env:
+          FILES: ${{ steps.filter.outputs.files_files }}
+        run: |
+          echo "$FILES" | jq -e 'sort == ["one.txt","two.txt"]'
 
   test-list-files-csv:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - run: |
-        echo "ONE" > one.txt
-        echo "TWO" > two.txt
-        git add one.txt two.txt
-    - uses: ./
-      id: filter
-      with:
-        base: HEAD
-        list-files: csv
-        filters: |
-          files:
-            - added|modified: '*.txt'
-    - name: filter-test
-      if: steps.filter.outputs.files != 'true'
-      run: exit 1
-    - name: count-test
-      if: steps.filter.outputs.files_count != 2
-      run: exit 1
-    - name: csv-test
-      env:
-        FILES: ${{ steps.filter.outputs.files_files }}
-      run: |
-        echo "$FILES" | grep -q 'one.txt,two.txt' || exit 1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - run: |
+          echo "ONE" > one.txt
+          echo "TWO" > two.txt
+          git add one.txt two.txt
+      - uses: ./
+        id: filter
+        with:
+          base: HEAD
+          list-files: csv
+          filters: |
+            files:
+              - added|modified: '*.txt'
+      - name: filter-test
+        if: steps.filter.outputs.files != 'true'
+        run: exit 1
+      - name: count-test
+        if: steps.filter.outputs.files_count != 2
+        run: exit 1
+      - name: csv-test
+        env:
+          FILES: ${{ steps.filter.outputs.files_files }}
+        run: |
+          echo "$FILES" | grep -q 'one.txt,two.txt' || exit 1
 
   test-list-files-lines:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - run: |
-        echo "ONE" > one.txt
-        echo "TWO" > two.txt
-        git add one.txt two.txt
-    - uses: ./
-      id: filter
-      with:
-        base: HEAD
-        list-files: lines
-        filters: |
-          files:
-            - added|modified: '*.txt'
-    - name: filter-test
-      if: steps.filter.outputs.files != 'true'
-      run: exit 1
-    - name: count-test
-      if: steps.filter.outputs.files_count != 2
-      run: exit 1
-    - name: lines-test
-      env:
-        FILES: ${{ steps.filter.outputs.files_files }}
-      run: |
-        echo "$FILES" | tr '\n' ',' | grep -q 'one.txt,two.txt' || exit 1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - run: |
+          echo "ONE" > one.txt
+          echo "TWO" > two.txt
+          git add one.txt two.txt
+      - uses: ./
+        id: filter
+        with:
+          base: HEAD
+          list-files: lines
+          filters: |
+            files:
+              - added|modified: '*.txt'
+      - name: filter-test
+        if: steps.filter.outputs.files != 'true'
+        run: exit 1
+      - name: count-test
+        if: steps.filter.outputs.files_count != 2
+        run: exit 1
+      - name: lines-test
+        env:
+          FILES: ${{ steps.filter.outputs.files_files }}
+        run: |
+          echo "$FILES" | tr '\n' ',' | grep -q 'one.txt,two.txt' || exit 1
 
   test-list-files-shell:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - run: |
-        echo "ONE" > one.txt
-        echo "TWO" > two.txt
-        git add one.txt two.txt
-    - uses: ./
-      id: filter
-      with:
-        base: HEAD
-        list-files: shell
-        filters: |
-          files:
-            - added|modified: '*.txt'
-    - name: filter-test
-      if: steps.filter.outputs.files != 'true'
-      run: exit 1
-    - name: count-test
-      if: steps.filter.outputs.files_count != 2
-      run: exit 1
-    - name: shell-test
-      env:
-        FILES: ${{ steps.filter.outputs.files_files }}
-      run: |
-        echo "$FILES" | grep -q 'one.txt' || exit 1
-        echo "$FILES" | grep -q 'two.txt' || exit 1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - run: |
+          echo "ONE" > one.txt
+          echo "TWO" > two.txt
+          git add one.txt two.txt
+      - uses: ./
+        id: filter
+        with:
+          base: HEAD
+          list-files: shell
+          filters: |
+            files:
+              - added|modified: '*.txt'
+      - name: filter-test
+        if: steps.filter.outputs.files != 'true'
+        run: exit 1
+      - name: count-test
+        if: steps.filter.outputs.files_count != 2
+        run: exit 1
+      - name: shell-test
+        env:
+          FILES: ${{ steps.filter.outputs.files_files }}
+        run: |
+          echo "$FILES" | grep -q 'one.txt' || exit 1
+          echo "$FILES" | grep -q 'two.txt' || exit 1
 
   test-list-files-escape:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - run: |
-        echo "ONE" > one.txt
-        echo "TWO" > two.txt
-        git add one.txt two.txt
-    - uses: ./
-      id: filter
-      with:
-        base: HEAD
-        list-files: escape
-        filters: |
-          files:
-            - added|modified: '*.txt'
-    - name: filter-test
-      if: steps.filter.outputs.files != 'true'
-      run: exit 1
-    - name: count-test
-      if: steps.filter.outputs.files_count != 2
-      run: exit 1
-    - name: shell-test
-      env:
-        FILES: ${{ steps.filter.outputs.files_files }}
-      run: |
-        echo "$FILES" | grep -q 'one.txt' || exit 1
-        echo "$FILES" | grep -q 'two.txt' || exit 1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - run: |
+          echo "ONE" > one.txt
+          echo "TWO" > two.txt
+          git add one.txt two.txt
+      - uses: ./
+        id: filter
+        with:
+          base: HEAD
+          list-files: escape
+          filters: |
+            files:
+              - added|modified: '*.txt'
+      - name: filter-test
+        if: steps.filter.outputs.files != 'true'
+        run: exit 1
+      - name: count-test
+        if: steps.filter.outputs.files_count != 2
+        run: exit 1
+      - name: shell-test
+        env:
+          FILES: ${{ steps.filter.outputs.files_files }}
+        run: |
+          echo "$FILES" | grep -q 'one.txt' || exit 1
+          echo "$FILES" | grep -q 'two.txt' || exit 1
 
   test-predicate-quantifier:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - run: |
-        mkdir -p pkg/a/b/c
-        echo "CODE" > pkg/a/b/c/test.ts
-        echo "DOC" > pkg/a/b/c/README.md
-        git add pkg/a/b/c/test.ts pkg/a/b/c/README.md
-    - uses: ./
-      id: filter
-      with:
-        base: HEAD
-        predicate-quantifier: 'every'
-        list-files: lines
-        filters: |
-          backend:
-            - 'pkg/a/b/c/**'
-            - '!**/*.md'
-            - '!**/*.jpeg'
-    - name: filter-test
-      if: steps.filter.outputs.backend != 'true'
-      run: exit 1
-    - name: count-test
-      if: steps.filter.outputs.backend_count != 1
-      run: exit 1
-    - name: files-test
-      env:
-        FILES: ${{ steps.filter.outputs.backend_files }}
-      run: |
-        echo "$FILES" | grep -q 'pkg/a/b/c/test.ts'
-        if echo "$FILES" | grep -q 'README.md'; then exit 1; fi
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - run: |
+          mkdir -p pkg/a/b/c
+          echo "CODE" > pkg/a/b/c/test.ts
+          echo "DOC" > pkg/a/b/c/README.md
+          git add pkg/a/b/c/test.ts pkg/a/b/c/README.md
+      - uses: ./
+        id: filter
+        with:
+          base: HEAD
+          predicate-quantifier: "every"
+          list-files: lines
+          filters: |
+            backend:
+              - 'pkg/a/b/c/**'
+              - '!**/*.md'
+              - '!**/*.jpeg'
+      - name: filter-test
+        if: steps.filter.outputs.backend != 'true'
+        run: exit 1
+      - name: count-test
+        if: steps.filter.outputs.backend_count != 1
+        run: exit 1
+      - name: files-test
+        env:
+          FILES: ${{ steps.filter.outputs.backend_files }}
+        run: |
+          echo "$FILES" | grep -q 'pkg/a/b/c/test.ts'
+          if echo "$FILES" | grep -q 'README.md'; then exit 1; fi
 
   test-any-all-changed:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - run: |
-        echo "ONE" > one.txt
-        git add one.txt
-    - uses: ./
-      id: filter
-      with:
-        base: HEAD
-        filters: |
-          one:
-            - 'one.txt'
-          two:
-            - 'two.txt'
-    - name: any-changed-test
-      if: steps.filter.outputs.any_changed != 'true'
-      run: exit 1
-    - name: all-changed-test
-      if: steps.filter.outputs.all_changed != 'false'
-      run: exit 1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - run: |
+          echo "ONE" > one.txt
+          git add one.txt
+      - uses: ./
+        id: filter
+        with:
+          base: HEAD
+          filters: |
+            one:
+              - 'one.txt'
+            two:
+              - 'two.txt'
+      - name: any-changed-test
+        if: steps.filter.outputs.any_changed != 'true'
+        run: exit 1
+      - name: all-changed-test
+        if: steps.filter.outputs.all_changed != 'false'
+        run: exit 1
 
   test-sample-filters:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - run: |
-        mkdir -p common config src/backend docs
-        echo "COMMON" > common/a.txt
-        echo "CONFIG" > config/b.conf
-        echo "CODE" > src/backend/c.ts
-        echo "DOC" > docs/new.md
-        git add common/a.txt config/b.conf src/backend/c.ts docs/new.md
-    - uses: ./
-      id: filter
-      with:
-        base: HEAD
-        list-files: lines
-        filters: 'sample-filters.yml'
-    - name: backend-test
-      if: steps.filter.outputs.backend != 'true' || steps.filter.outputs.backend_count != 3
-      run: exit 1
-    - name: docs-test
-      if: steps.filter.outputs.docs != 'true' || steps.filter.outputs.docs_count != 1
-      run: exit 1
-    - name: any-changed-test
-      if: steps.filter.outputs.any_changed != 'true'
-      run: exit 1
-    - name: all-changed-test
-      if: steps.filter.outputs.all_changed != 'true'
-      run: exit 1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - run: |
+          mkdir -p common config src/backend docs
+          echo "COMMON" > common/a.txt
+          echo "CONFIG" > config/b.conf
+          echo "CODE" > src/backend/c.ts
+          echo "DOC" > docs/new.md
+          git add common/a.txt config/b.conf src/backend/c.ts docs/new.md
+      - uses: ./
+        id: filter
+        with:
+          base: HEAD
+          list-files: lines
+          filters: "sample-filters.yml"
+      - name: backend-test
+        if: steps.filter.outputs.backend != 'true' || steps.filter.outputs.backend_count != 3
+        run: exit 1
+      - name: docs-test
+        if: steps.filter.outputs.docs != 'true' || steps.filter.outputs.docs_count != 1
+        run: exit 1
+      - name: any-changed-test
+        if: steps.filter.outputs.any_changed != 'true'
+        run: exit 1
+      - name: all-changed-test
+        if: steps.filter.outputs.all_changed != 'true'
+        run: exit 1
 
   matrix-changes:
     runs-on: ubuntu-latest
@@ -426,24 +426,24 @@ jobs:
     outputs:
       packages: ${{ steps.filter.outputs.changes }}
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - run: |
-        mkdir -p src/package1 src/package2
-        echo "PKG1" > src/package1/file.txt
-        echo "PKG2" > src/package2/file.txt
-        git add src/package1/file.txt src/package2/file.txt
-    - uses: ./
-      id: filter
-      with:
-        base: HEAD
-        filters: |
-          package1: src/package1/**
-          package2: src/package2/**
-    - name: packages-test
-      if: steps.filter.outputs.changes != '["package1","package2"]'
-      run: |
-        echo "Expected ['package1', 'package2'], but got ${{ steps.filter.outputs.changes }}"
-        exit 1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - run: |
+          mkdir -p src/package1 src/package2
+          echo "PKG1" > src/package1/file.txt
+          echo "PKG2" > src/package2/file.txt
+          git add src/package1/file.txt src/package2/file.txt
+      - uses: ./
+        id: filter
+        with:
+          base: HEAD
+          filters: |
+            package1: src/package1/**
+            package2: src/package2/**
+      - name: packages-test
+        if: steps.filter.outputs.changes != '["package1","package2"]'
+        run: |
+          echo "Expected ['package1', 'package2'], but got ${{ steps.filter.outputs.changes }}"
+          exit 1
 
   test-matrix:
     needs: matrix-changes
@@ -454,53 +454,53 @@ jobs:
       matrix:
         package: ${{ fromJSON(needs.matrix-changes.outputs.packages) }}
     steps:
-    - run: |
-        if [[ "${{ matrix.package }}" != 'package1' && "${{ matrix.package }}" != 'package2' ]]; then
-          exit 1
-        fi
+      - run: |
+          if [[ "${{ matrix.package }}" != 'package1' && "${{ matrix.package }}" != 'package2' ]]; then
+            exit 1
+          fi
 
   test-renamed-file:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - run: git mv README.md README_RENAMED.md
-    - uses: ./
-      id: filter
-      with:
-        base: HEAD
-        filters: |
-          docs:
-            - renamed: README.md
-    - name: filter-test
-      if: steps.filter.outputs.docs != 'true'
-      run: |
-        echo "Expected 'true', but got ${{ steps.filter.outputs.docs }}"
-        exit 1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - run: git mv README.md README_RENAMED.md
+      - uses: ./
+        id: filter
+        with:
+          base: HEAD
+          filters: |
+            docs:
+              - renamed: README.md
+      - name: filter-test
+        if: steps.filter.outputs.docs != 'true'
+        run: |
+          echo "Expected 'true', but got ${{ steps.filter.outputs.docs }}"
+          exit 1
 
   test-any-all:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - run: |
-        echo "ONE" > one.txt
-        echo "TWO" > two.txt
-        git add one.txt two.txt
-    - uses: ./
-      id: filter
-      with:
-        base: HEAD
-        filters: |
-          test1:
-            - one.txt
-          test2:
-            - two.txt
-    - name: any-all-test
-      if: steps.filter.outputs.any_changed != 'true' || steps.filter.outputs.all_changed != 'true'
-      run: exit 1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - run: |
+          echo "ONE" > one.txt
+          echo "TWO" > two.txt
+          git add one.txt two.txt
+      - uses: ./
+        id: filter
+        with:
+          base: HEAD
+          filters: |
+            test1:
+              - one.txt
+            test2:
+              - two.txt
+      - name: any-all-test
+        if: steps.filter.outputs.any_changed != 'true' || steps.filter.outputs.all_changed != 'true'
+        run: exit 1
 
   test-job-outputs:
     runs-on: ubuntu-latest
@@ -509,20 +509,20 @@ jobs:
     outputs:
       packages: ${{ steps.filter.outputs.changes }}
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-    - run: |
-        echo "// temp" > src/temp.ts
-        git add src/temp.ts
-    - uses: ./
-      id: filter
-      with:
-        base: HEAD
-        filters: |
-          src:
-            - 'src/**'
-    - name: output-test
-      if: steps.filter.outputs.src != 'true'
-      run: exit 1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - run: |
+          echo "// temp" > src/temp.ts
+          git add src/temp.ts
+      - uses: ./
+        id: filter
+        with:
+          base: HEAD
+          filters: |
+            src:
+              - 'src/**'
+      - name: output-test
+        if: steps.filter.outputs.src != 'true'
+        run: exit 1
 
   test-job-outputs-consumer:
     needs: test-job-outputs
@@ -530,6 +530,6 @@ jobs:
     permissions:
       contents: read
     steps:
-    - name: verify-output
-      run: |
-        echo '${{ needs.test-job-outputs.outputs.packages }}' | grep -q 'src'
+      - name: verify-output
+        run: |
+          echo '${{ needs.test-job-outputs.outputs.packages }}' | grep -q 'src'

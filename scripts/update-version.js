@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const fs = require('fs')
+import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 
 function bump(version, release) {
   const parts = version.split('.').map(Number)
@@ -24,18 +24,18 @@ if (!['major', 'minor', 'patch'].includes(release)) {
 const pkgPath = 'package.json'
 const lockPath = 'package-lock.json'
 
-const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'))
+const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))
 const newVersion = bump(pkg.version, release)
 pkg.version = newVersion
-fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n')
+writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n')
 
-if (fs.existsSync(lockPath)) {
-  const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'))
+if (existsSync(lockPath)) {
+  const lock = JSON.parse(readFileSync(lockPath, 'utf8'))
   lock.version = newVersion
   if (lock.packages && lock.packages['']) {
     lock.packages[''].version = newVersion
   }
-  fs.writeFileSync(lockPath, JSON.stringify(lock, null, 2) + '\n')
+  writeFileSync(lockPath, JSON.stringify(lock, null, 2) + '\n')
 }
 
 console.log(`Version updated to ${newVersion}`)
