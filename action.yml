@@ -27,16 +27,16 @@ inputs:
     description: |
       Enables listing of files matching the filter:
         'none'  - Disables listing of matching files (default).
-        'csv'   - Coma separated list of filenames.
+        'csv'   - Comma separated list of filenames.
                   If needed it uses double quotes to wrap filename with unsafe characters.
         'json'  - Serialized as JSON array.
         'shell' - Space delimited list usable as command line argument list in linux shell.
                   If needed it uses single or double quotes to wrap filename with unsafe characters.
-        'escape'- Space delimited list usable as command line argument list in linux shell.
+        'escape' - Space delimited list usable as command line argument list in linux shell.
                   Backslash escapes every potentially unsafe character.
         'lines' - Newline delimited list of files without any escaping.
     required: false
-    default: none
+    default: 'none'
   initial-fetch-depth:
     description: |
       How many commits are initially fetched from base branch.
