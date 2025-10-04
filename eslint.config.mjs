@@ -29,6 +29,19 @@ export default [
   ...typescriptConfigs,
 
   {
+    files: ['**/*.js'],
+    languageOptions: {
+      globals: {
+        require: 'readonly',
+        module: 'readonly',
+        __dirname: 'readonly',
+        process: 'readonly',
+        console: 'readonly',
+      },
+    },
+  },
+
+  {
     files: typescriptFiles,
     plugins: {
       '@typescript-eslint': tseslint.plugin,
