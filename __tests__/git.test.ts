@@ -1,10 +1,10 @@
 import * as git from '../src/git'
-import {ChangeStatus} from '../src/file'
+import { ChangeStatus } from '../src/file'
 
 describe('parsing output of the git diff command', () => {
   test('parseGitDiffOutput returns files with correct change status', async () => {
     const files = git.parseGitDiffOutput(
-      'A\u0000LICENSE\u0000' + 'M\u0000src/index.ts\u0000' + 'D\u0000src/main.ts\u0000'
+      'A\u0000LICENSE\u0000' + 'M\u0000src/index.ts\u0000' + 'D\u0000src/main.ts\u0000',
     )
     expect(files.length).toBe(3)
     expect(files[0].filename).toBe('LICENSE')
@@ -30,18 +30,18 @@ describe('parsing output of the git diff command', () => {
       'src/c/copied.ts',
       'R',
       'src/renamed_old.ts',
-      'src/renamed.ts'
+      'src/renamed.ts',
     ].join('\u0000')
 
     const files = git.parseGitDiffOutput(payload)
 
     // Check essential fields using subset match
     expect(files).toMatchObject([
-      {filename: 'src/c/copied75.ts', status: ChangeStatus.Copied, from: 'src/copied75.ts', similarity: 75},
-      {filename: 'src/renamed100.ts', status: ChangeStatus.Renamed, from: 'src/renamed100_old.ts', similarity: 100},
-      {filename: 'src/conflict.ts', status: ChangeStatus.Unmerged},
-      {filename: 'src/c/copied.ts', status: ChangeStatus.Copied, from: 'src/copied.ts'}, // no score
-      {filename: 'src/renamed.ts', status: ChangeStatus.Renamed, from: 'src/renamed_old.ts'} // no score
+      { filename: 'src/c/copied75.ts', status: ChangeStatus.Copied, from: 'src/copied75.ts', similarity: 75 },
+      { filename: 'src/renamed100.ts', status: ChangeStatus.Renamed, from: 'src/renamed100_old.ts', similarity: 100 },
+      { filename: 'src/conflict.ts', status: ChangeStatus.Unmerged },
+      { filename: 'src/c/copied.ts', status: ChangeStatus.Copied, from: 'src/copied.ts' }, // no score
+      { filename: 'src/renamed.ts', status: ChangeStatus.Renamed, from: 'src/renamed_old.ts' }, // no score
     ])
 
     // Optionally ensure entries without a similarity score omit the similarity field
@@ -55,9 +55,9 @@ describe('parsing output of the git diff command', () => {
 
   test('groupFilesByStatus groups files by their change status', () => {
     const grouped = git.groupFilesByStatus([
-      {filename: 'a', status: ChangeStatus.Added, from: 'a'},
-      {filename: 'b', status: ChangeStatus.Added, from: 'b'},
-      {filename: 'c', status: ChangeStatus.Modified, from: 'c'}
+      { filename: 'a', status: ChangeStatus.Added, from: 'a' },
+      { filename: 'b', status: ChangeStatus.Added, from: 'b' },
+      { filename: 'c', status: ChangeStatus.Modified, from: 'c' },
     ])
 
     expect(grouped[ChangeStatus.Added].length).toBe(2)

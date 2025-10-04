@@ -1,14 +1,14 @@
 import * as core from '@actions/core'
-import {Filter} from '../src/filter'
-import {File, ChangeStatus} from '../src/file'
-import {exportResults} from '../src/main'
+import { Filter } from '../src/filter'
+import { File, ChangeStatus } from '../src/file'
+import { exportResults } from '../src/main'
 
 jest.mock('@actions/core', () => ({
   info: jest.fn(),
   setFailed: jest.fn(),
   startGroup: jest.fn(),
   setOutput: jest.fn(),
-  endGroup: jest.fn()
+  endGroup: jest.fn(),
 }))
 
 describe('set output post filtering', () => {
@@ -45,7 +45,7 @@ describe('set output post filtering', () => {
 })
 
 function modified(paths: string[]): File[] {
-  return paths.map(filename => {
-    return {filename, status: ChangeStatus.Modified, from: filename}
+  return paths.map((filename) => {
+    return { filename, status: ChangeStatus.Modified, from: filename }
   })
 }

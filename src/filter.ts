@@ -1,19 +1,22 @@
 import * as jsyaml from 'js-yaml'
 import picomatch from 'picomatch'
-import {File, ChangeStatus} from './file'
+import { File, ChangeStatus } from './file'
 
 // Type definition of object we expect to load from YAML
 interface FilterYaml {
   [name: string]: FilterItemYaml
 }
 type FilterItemYaml =
-  | string // Filename pattern, e.g. "path/to/*.js"
-  | {[changeTypes: string]: string | string[]} // Change status and filename, e.g. added|modified: "path/to/*.js"
-  | FilterItemYaml[] // Supports referencing another rule via YAML anchor
+  // Filename pattern, e.g. "path/to/*.js"
+  | string
+  // Change status and filename, e.g. added|modified: "path/to/*.js"
+  | { [changeTypes: string]: string | string[] }
+  // Supports referencing another rule via YAML anchor
+  | FilterItemYaml[]
 
 // Minimatch options used in all matchers
 const MatchOptions = {
-  dot: true
+  dot: true,
 }
 
 // Internal representation of one item in named filter rule
@@ -48,13 +51,13 @@ export enum PredicateQuantifier {
    * at least one pattern that matches them. This is the default behavior if you don't
    * specify anything as a predicate quantifier.
    */
-  SOME = 'some'
+  SOME = 'some',
 }
 
 /**
  * Used to define customizations for how the file filtering should work at runtime.
  */
-export type FilterConfig = {readonly predicateQuantifier: PredicateQuantifier}
+export type FilterConfig = { readonly predicateQuantifier: PredicateQuantifier }
 
 /**
  * An array of strings (at runtime) that contains the valid/accepted values for
@@ -71,12 +74,12 @@ export interface FilterResults {
 }
 
 export class Filter {
-  rules: {[key: string]: FilterRuleItem[]} = {}
+  rules: { [key: string]: FilterRuleItem[] } = {}
 
   // Creates instance of Filter and load rules from YAML if it's provided
   constructor(
     yaml?: string,
-    readonly filterConfig?: FilterConfig
+    readonly filterConfig?: FilterConfig,
   ) {
     if (yaml) {
       this.load(yaml)
@@ -102,18 +105,27 @@ export class Filter {
   match(files: File[]): FilterResults {
     const result: FilterResults = {}
     for (const [key, patterns] of Object.entries(this.rules)) {
-      result[key] = files.filter(file => this.isMatch(file, patterns))
+      result[key] = files.filter((file) => this.isMatch(file, patterns))
     }
     return result
   }
 
   private isMatch(file: File, patterns: FilterRuleItem[]): boolean {
+    const filePaths = Array.from(
+      new Set(
+        [file.filename, file.from, file.to, file.previous_filename].filter(
+          (path): path is string => typeof path === 'string' && path.length > 0,
+        ),
+      ),
+    )
     const aPredicate = (rule: Readonly<FilterRuleItem>): boolean => {
-      return (rule.status === undefined || rule.status.includes(file.status)) && rule.isMatch(file.from)
+      return (
+        (rule.status === undefined || rule.status.includes(file.status)) && filePaths.some((path) => rule.isMatch(path))
+      )
     }
 
-    const positives = patterns.filter(p => !p.negate)
-    const negatives = patterns.filter(p => p.negate)
+    const positives = patterns.filter((p) => !p.negate)
+    const negatives = patterns.filter((p) => p.negate)
 
     const positiveMatch =
       positives.length === 0
@@ -129,35 +141,35 @@ export class Filter {
 
   private parseFilterItemYaml(item: FilterItemYaml): FilterRuleItem[] {
     if (Array.isArray(item)) {
-      return item.map(i => this.parseFilterItemYaml(i)).flat()
+      return item.map((i) => this.parseFilterItemYaml(i)).flat()
     }
 
     if (typeof item === 'string') {
       const negated = item.startsWith('!')
       const pattern = negated ? item.slice(1) : item
-      return [{status: undefined, isMatch: picomatch(pattern, MatchOptions), negate: negated}]
+      return [{ status: undefined, isMatch: picomatch(pattern, MatchOptions), negate: negated }]
     }
 
     if (typeof item === 'object') {
       return Object.entries(item).flatMap(([key, pattern]) => {
         if (typeof key !== 'string' || (typeof pattern !== 'string' && !Array.isArray(pattern))) {
           this.throwInvalidFormatError(
-            `Expected [key:string]= pattern:string | string[], but [${key}:${typeof key}]= ${String(pattern)}:${typeof pattern} found`
+            `Expected [key:string]= pattern:string | string[], but [${key}:${typeof key}]= ${String(pattern)}:${typeof pattern} found`,
           )
         }
 
         const patterns = Array.isArray(pattern) ? pattern : [pattern]
-        return patterns.map(p => {
+        return patterns.map((p) => {
           const negated = p.startsWith('!')
           const pat = negated ? p.slice(1) : p
           return {
             status: key
               .split('|')
-              .map(x => x.trim())
-              .filter(x => x.length > 0)
-              .map(x => x.toLowerCase()) as ChangeStatus[],
+              .map((x) => x.trim())
+              .filter((x) => x.length > 0)
+              .map((x) => x.toLowerCase()) as ChangeStatus[],
             isMatch: picomatch(pat, MatchOptions),
-            negate: negated
+            negate: negated,
           }
         })
       })

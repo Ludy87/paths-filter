@@ -13,7 +13,7 @@ export enum ChangeStatus {
   Deleted = 'deleted',
   Modified = 'modified',
   Renamed = 'renamed',
-  Unmerged = 'unmerged'
+  Unmerged = 'unmerged',
 }
 
 export const statusMap: Record<'A' | 'M' | 'D' | 'R' | 'C' | 'U', ChangeStatus> = {
@@ -22,5 +22,5 @@ export const statusMap: Record<'A' | 'M' | 'D' | 'R' | 'C' | 'U', ChangeStatus> 
   D: ChangeStatus.Deleted,
   R: ChangeStatus.Renamed,
   C: ChangeStatus.Copied,
-  U: ChangeStatus.Unmerged
+  U: ChangeStatus.Unmerged,
 }

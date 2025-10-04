@@ -1,11 +1,17 @@
-module.exports = {
+/** @type {import('jest').Config} */
+const config = {
   clearMocks: true,
-  moduleFileExtensions: ['js', 'ts'],
+  coverageProvider: 'v8',
+  moduleFileExtensions: ['ts', 'js'],
+  preset: 'ts-jest',
+  roots: ['<rootDir>/src', '<rootDir>/__tests__'],
   testEnvironment: 'node',
-  testMatch: ['**/*.test.ts'],
+  testMatch: ['**/__tests__/**/*.test.ts', '**/*.test.ts'],
   testRunner: 'jest-circus/runner',
   transform: {
-    '^.+\\.ts$': 'ts-jest'
+    '^.+\\.ts$': 'ts-jest',
   },
-  verbose: true
+  verbose: true,
 }
+
+module.exports = config

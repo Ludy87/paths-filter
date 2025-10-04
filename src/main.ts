@@ -1,8 +1,8 @@
 import * as fs from 'fs'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import {GetResponseDataTypeFromEndpointMethod} from '@octokit/types'
-import {PushEvent, PullRequestEvent} from '@octokit/webhooks-types'
+import { GetResponseDataTypeFromEndpointMethod } from '@octokit/types'
+import { PushEvent, PullRequestEvent } from '@octokit/webhooks-types'
 
 import {
   isPredicateQuantifier,
@@ -10,30 +10,30 @@ import {
   FilterConfig,
   FilterResults,
   PredicateQuantifier,
-  SUPPORTED_PREDICATE_QUANTIFIERS
+  SUPPORTED_PREDICATE_QUANTIFIERS,
 } from './filter'
-import {File, ChangeStatus} from './file'
+import { File, ChangeStatus } from './file'
 import * as git from './git'
-import {backslashEscape, shellEscape} from './list-format/shell-escape'
-import {csvEscape} from './list-format/csv-escape'
+import { backslashEscape, shellEscape } from './list-format/shell-escape'
+import { csvEscape } from './list-format/csv-escape'
 
 type ExportFormat = 'none' | 'csv' | 'json' | 'shell' | 'escape' | 'lines'
 
 async function run(): Promise<void> {
   try {
-    const workingDirectory = core.getInput('working-directory', {required: false})
+    const workingDirectory = core.getInput('working-directory', { required: false })
     if (workingDirectory) {
       process.chdir(workingDirectory)
     }
 
-    const token = core.getInput('token', {required: false})
-    const ref = core.getInput('ref', {required: false})
-    const base = core.getInput('base', {required: false})
-    const filtersInput = core.getInput('filters', {required: true})
+    const token = core.getInput('token', { required: false })
+    const ref = core.getInput('ref', { required: false })
+    const base = core.getInput('base', { required: false })
+    const filtersInput = core.getInput('filters', { required: true })
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
-    const listFiles = core.getInput('list-files', {required: false}).toLowerCase() || 'none'
-    const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', {required: false})) || 10
-    const predicateQuantifier = core.getInput('predicate-quantifier', {required: false}) || PredicateQuantifier.SOME
+    const listFiles = core.getInput('list-files', { required: false }).toLowerCase() || 'none'
+    const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', { required: false })) || 10
+    const predicateQuantifier = core.getInput('predicate-quantifier', { required: false }) || PredicateQuantifier.SOME
 
     if (!isExportFormat(listFiles)) {
       core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFiles}'`)
@@ -46,7 +46,7 @@ async function run(): Promise<void> {
         `'${predicateQuantifier}'. Valid values: ${SUPPORTED_PREDICATE_QUANTIFIERS.join(', ')}`
       throw new Error(predicateQuantifierInvalidErrorMsg)
     }
-    const filterConfig: FilterConfig = {predicateQuantifier}
+    const filterConfig: FilterConfig = { predicateQuantifier }
 
     const filter = new Filter(filtersYaml, filterConfig)
     const files = await getChangedFiles(token, base, ref, initialFetchDepth)
@@ -71,7 +71,7 @@ function getConfigFileContent(configPath: string): string {
     throw new Error(`'${configPath}' is not a file.`)
   }
 
-  return fs.readFileSync(configPath, {encoding: 'utf8'})
+  return fs.readFileSync(configPath, { encoding: 'utf8' })
 }
 
 async function getChangedFiles(token: string, base: string, ref: string, initialFetchDepth: number): Promise<File[]> {
@@ -104,7 +104,7 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
     }
     core.info('Github token is not available - changes will be detected using git diff')
     const baseSha = (github.context.payload as PullRequestEvent).pull_request?.base.sha
-    const defaultBranch: string | undefined = (github.context.payload.repository as {default_branch?: string})
+    const defaultBranch: string | undefined = (github.context.payload.repository as { default_branch?: string })
       ?.default_branch
     const currentRef = await git.getCurrentRef()
     const safeBase = typeof baseSha === 'string' ? baseSha : typeof defaultBranch === 'string' ? defaultBranch : ''
@@ -115,7 +115,7 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
 }
 
 async function getChangedFilesFromGit(base: string, head: string, initialFetchDepth: number): Promise<File[]> {
-  const repository = github.context.payload.repository as {default_branch?: string} | undefined
+  const repository = github.context.payload.repository as { default_branch?: string } | undefined
   const defaultBranch: string | undefined = repository?.default_branch
 
   const beforeSha = github.context.eventName === 'push' ? (github.context.payload as PushEvent).before : null
@@ -127,13 +127,13 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
 
   if (!head) {
     throw new Error(
-      "This action requires 'head' input to be configured, 'ref' to be set in the event payload or branch/tag checked out in current git repository"
+      "This action requires 'head' input to be configured, 'ref' to be set in the event payload or branch/tag checked out in current git repository",
     )
   }
 
   if (!base) {
     throw new Error(
-      "This action requires 'base' input to be configured or 'repository.default_branch' to be set in the event payload"
+      "This action requires 'base' input to be configured or 'repository.default_branch' to be set in the event payload",
     )
   }
 
@@ -157,7 +157,7 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
     if (baseSha === git.NULL_SHA) {
       if (defaultBranch && base !== defaultBranch) {
         core.info(
-          `First push of a branch detected - changes will be detected against the default branch ${defaultBranch}`
+          `First push of a branch detected - changes will be detected against the default branch ${defaultBranch}`,
         )
         if (typeof defaultBranch !== 'string') {
           throw new Error('Default branch is not defined or is not a string')
@@ -194,8 +194,8 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
         owner: github.context.repo.owner,
         repo: github.context.repo.repo,
         pull_number: pullRequest.number,
-        per_page
-      })
+        per_page,
+      }),
     )) {
       if (response.status !== 200) {
         throw new Error(`Fetching list of changed files from GitHub API failed with error code ${response.status}`)
@@ -208,38 +208,38 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
         // Therefore we treat it as if rename detection in git diff was turned off.
         // Rename is replaced by delete of original filename and add of new filename
         const previousFilename = 'previous_filename' in row ? (row.previous_filename as string) : undefined
-        if (row.status === ChangeStatus.Renamed) {
+        if ((row.status as ChangeStatus) === ChangeStatus.Renamed) {
           core.info(`Renamed file detected: ${row.filename} (previous: ${previousFilename})`)
           if (previousFilename === undefined) {
             core.warning(`Renamed file detected but previous filename is missing: ${row.filename}`)
             files.push({
               filename: row.filename,
               status: ChangeStatus.Added,
-              from: row.filename
+              from: row.filename,
             })
           } else {
             files.push({
               from: previousFilename,
               to: row.filename,
               status: ChangeStatus.Renamed,
-              filename: row.filename
+              filename: row.filename,
             })
           }
-        } else if (row.status === ChangeStatus.Copied) {
+        } else if ((row.status as ChangeStatus) === ChangeStatus.Copied) {
           core.info(`Copied file detected: ${row.filename} (previous: ${previousFilename})`)
           if (previousFilename === undefined) {
             core.warning(`Copied file detected but previous filename is missing: ${row.filename}`)
             files.push({
               from: row.filename,
               filename: row.filename,
-              status: ChangeStatus.Added
+              status: ChangeStatus.Added,
             })
           } else {
             files.push({
               filename: row.filename,
               to: row.filename,
               status: ChangeStatus.Copied,
-              from: previousFilename
+              from: previousFilename,
             })
           }
         } else {
@@ -248,7 +248,7 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
           files.push({
             from: row.filename,
             filename: row.filename,
-            status
+            status,
           })
         }
       }
@@ -307,7 +307,7 @@ export function exportResults(results: FilterResults, format: ExportFormat): voi
   core.setOutput('any_changed', anyChanged)
 
   if (results['changes'] === undefined) {
-    const filteredShared = changes.filter(change => change !== 'shared')
+    const filteredShared = changes.filter((change) => change !== 'shared')
     const changesJson = JSON.stringify(filteredShared)
     core.info(`Changes output set to ${changesJson}`)
     core.setOutput('changes', changesJson)
@@ -317,7 +317,7 @@ export function exportResults(results: FilterResults, format: ExportFormat): voi
 }
 
 function serializeExport(files: File[], format: ExportFormat): string {
-  const fileNames = files.map(file => file.filename)
+  const fileNames = files.map((file) => file.filename)
   switch (format) {
     case 'csv':
       return fileNames.map(csvEscape).join(',')
@@ -347,4 +347,4 @@ if (require.main === module) {
   void run()
 }
 
-export {run, getChangedFilesFromApi}
+export { run, getChangedFilesFromApi }

@@ -1,5 +1,5 @@
-import {Filter, FilterConfig, PredicateQuantifier} from '../src/filter'
-import {File, ChangeStatus} from '../src/file'
+import { Filter, FilterConfig, PredicateQuantifier } from '../src/filter'
+import { File, ChangeStatus } from '../src/file'
 
 describe('yaml filter parsing tests', () => {
   test('throws if yaml is not a dictionary', () => {
@@ -167,7 +167,7 @@ describe('matching tests', () => {
       - '!**/*.jpeg'
       - '!**/*.md'
     `
-    const filterConfig: FilterConfig = {predicateQuantifier: PredicateQuantifier.EVERY}
+    const filterConfig: FilterConfig = { predicateQuantifier: PredicateQuantifier.EVERY }
     const filter = new Filter(yaml, filterConfig)
 
     const typescriptFiles = modified(['pkg/a/b/c/some-class.ts', 'pkg/a/b/c/src/main/some-class.ts'])
@@ -177,7 +177,7 @@ describe('matching tests', () => {
       'pkg/a/b/c/some-pics.jpeg',
       'pkg/a/b/c/src/main/jpeg/some-pic.jpeg',
       'pkg/a/b/c/src/main/some-docs.md',
-      'pkg/a/b/c/some-docs.md'
+      'pkg/a/b/c/some-docs.md',
     ])
 
     const typescriptMatch = filter.match(typescriptFiles)
@@ -189,6 +189,67 @@ describe('matching tests', () => {
     expect(otherPkgTypescriptMatch.backend).toEqual([])
     expect(docsMatch.backend).toEqual([])
     expect(otherPkgJpegMatch.backend).toEqual([])
+  })
+
+  test('matches renamed files using the destination path', () => {
+    const yaml = `
+    rename:
+      - renamed: 'pkg/renamed/**'
+    `
+    const filter = new Filter(yaml)
+    const files = [
+      {
+        filename: 'pkg/renamed/file.ts',
+        status: ChangeStatus.Renamed,
+        from: 'pkg/original/file.ts',
+        to: 'pkg/renamed/file.ts',
+      },
+    ]
+
+    const match = filter.match(files)
+    expect(match.rename).toEqual(files)
+  })
+
+  test('matches copied files using both source and destination paths', () => {
+    const yaml = `
+    copyDestination:
+      - copied: 'pkg/**/*'
+    copySource:
+      - copied: 'lib/**/*'
+    `
+    const filter = new Filter(yaml)
+    const files = [
+      {
+        filename: 'pkg/utils/file.ts',
+        status: ChangeStatus.Copied,
+        from: 'lib/utils/file.ts',
+        to: 'pkg/utils/file.ts',
+      },
+    ]
+
+    const match = filter.match(files)
+    expect(match.copyDestination).toEqual(files)
+    expect(match.copySource).toEqual(files)
+  })
+
+  test('negated status rules apply to every known path variant', () => {
+    const yaml = `
+    rename:
+      - renamed: '**/*.ts'
+      - renamed: '!legacy/**'
+    `
+    const filter = new Filter(yaml)
+    const files = [
+      {
+        filename: 'pkg/renamed/file.ts',
+        status: ChangeStatus.Renamed,
+        from: 'legacy/file.ts',
+        to: 'pkg/renamed/file.ts',
+      },
+    ]
+
+    const match = filter.match(files)
+    expect(match.rename).toEqual([])
   })
 
   test('matches path based on rules included using YAML anchor', () => {
@@ -224,7 +285,7 @@ describe('matching specific change status', () => {
       - added: "**/*"
     `
     let filter = new Filter(yaml)
-    const files = [{status: ChangeStatus.Added, filename: 'file.js', from: 'file.js'}]
+    const files = [{ status: ChangeStatus.Added, filename: 'file.js', from: 'file.js' }]
     const match = filter.match(files)
     expect(match.add).toEqual(files)
   })
@@ -235,7 +296,7 @@ describe('matching specific change status', () => {
       - added|modified: "**/*"
     `
     let filter = new Filter(yaml)
-    const files = [{status: ChangeStatus.Modified, filename: 'file.js', from: 'file.js'}]
+    const files = [{ status: ChangeStatus.Modified, filename: 'file.js', from: 'file.js' }]
     const match = filter.match(files)
     expect(match.addOrModify).toEqual(files)
   })
@@ -247,7 +308,7 @@ describe('matching specific change status', () => {
       - "test.txt"
     `
     let filter = new Filter(yaml)
-    const files = [{status: ChangeStatus.Renamed, filename: 'file.js', from: 'file.js'}]
+    const files = [{ status: ChangeStatus.Renamed, filename: 'file.js', from: 'file.js' }]
     const match = filter.match(files)
     expect(match.rename).toEqual(files)
   })
@@ -268,13 +329,13 @@ describe('matching specific change status', () => {
 })
 
 function modified(paths: string[]): File[] {
-  return paths.map(filename => {
-    return {filename, status: ChangeStatus.Modified, from: filename}
+  return paths.map((filename) => {
+    return { filename, status: ChangeStatus.Modified, from: filename }
   })
 }
 
 function renamed(paths: string[]): File[] {
-  return paths.map(filename => {
-    return {filename, status: ChangeStatus.Renamed, from: filename}
+  return paths.map((filename) => {
+    return { filename, status: ChangeStatus.Renamed, from: filename }
   })
 }

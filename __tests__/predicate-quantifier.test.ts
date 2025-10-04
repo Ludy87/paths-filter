@@ -1,4 +1,4 @@
-import {isPredicateQuantifier, SUPPORTED_PREDICATE_QUANTIFIERS} from '../src/filter'
+import { isPredicateQuantifier, SUPPORTED_PREDICATE_QUANTIFIERS } from '../src/filter'
 
 describe('isPredicateQuantifier', () => {
   test('returns true for supported values', () => {
