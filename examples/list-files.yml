@@ -12,7 +12,7 @@ jobs:
 
       - name: Detect documentation updates
         id: filter
-        uses: Ludy87/paths-filter@v3
+        uses: Ludy87/paths-filter@v4
         with:
           list-files: shell
           write-to-files: true

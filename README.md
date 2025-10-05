@@ -117,7 +117,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: Ludy87/paths-filter@v3
+      - uses: Ludy87/paths-filter@v4
         id: changes
         with:
           filters: |
@@ -140,7 +140,7 @@ This configuration gets you up and running in minutes.
 ## Example
 
 ```yaml
-- uses: Ludy87/paths-filter@v3
+- uses: Ludy87/paths-filter@v4
   id: changes
   with:
     filters: |
@@ -181,7 +181,7 @@ For more information, see the [CHANGELOG](https://github.com/Ludy87/paths-filter
 ## Usage
 
 ```yaml
-- uses: Ludy87/paths-filter@v3
+- uses: Ludy87/paths-filter@v4
   with:
     # Defines filters applied to detected changed files.
     # Each filter has a name and a list of rules.
@@ -312,7 +312,7 @@ jobs:
       pull-requests: read # required by Ludy87/paths-filter
     steps:
       - uses: actions/checkout@v5.0.0
-      - uses: Ludy87/paths-filter@v3
+      - uses: Ludy87/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -356,7 +356,7 @@ jobs:
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
       # For pull requests it's not necessary to check out the code
-      - uses: Ludy87/paths-filter@v3
+      - uses: Ludy87/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -402,7 +402,7 @@ jobs:
       packages: ${{ steps.filter.outputs.changes }}
     steps:
       # For pull requests it's not necessary to check out the code
-      - uses: Ludy87/paths-filter@v3
+      - uses: Ludy87/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -462,7 +462,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5.0.0
       - name: Check for file changes
-        uses: Ludy87/paths-filter@v3
+        uses: Ludy87/paths-filter@v4
         id: change
         with:
           filters: '.github/config/.test.yaml'
@@ -497,7 +497,7 @@ jobs:
       pull-requests: read # required by Ludy87/paths-filter
     steps:
     - uses: actions/checkout@v5.0.0
-    - uses: Ludy87/paths-filter@v3
+    - uses: Ludy87/paths-filter@v4
       id: filter
 ...
     branches: # Push to the following branches will trigger the workflow
@@ -519,7 +519,7 @@ jobs:
 
       # Filter to detect which files were modified
       # Changes could be, for example, automatically committed
-    - uses: Ludy87/paths-filter@v3
+    - uses: Ludy87/paths-filter@v4
       id: filter
       with:
         base: HEAD
@@ -534,7 +534,7 @@ jobs:
   <summary>Define filter rules in a dedicated file</summary>
 
 ```yaml
-- uses: Ludy87/paths-filter@v3
+- uses: Ludy87/paths-filter@v4
       id: filter
       with:
         # Path to the file where filters are defined
@@ -547,7 +547,7 @@ jobs:
   <summary>Use YAML anchors to reuse path expression(s) inside another rule</summary>
 
 ```yaml
-- uses: Ludy87/paths-filter@v3
+- uses: Ludy87/paths-filter@v4
       id: filter
       with:
         # &shared is the YAML anchor,
@@ -568,7 +568,7 @@ jobs:
   <summary>Consider whether a file was added, modified, or deleted</summary>
 
 ```yaml
-- uses: Ludy87/paths-filter@v3
+- uses: Ludy87/paths-filter@v4
       id: filter
       with:
         # A changed file can be 'added', 'modified', or 'deleted'.
@@ -594,7 +594,7 @@ jobs:
   <summary>Detect changes in a folder only for certain file extensions</summary>
 
 ```yaml
-- uses: Ludy87/paths-filter@v3
+- uses: Ludy87/paths-filter@v4
       id: filter
       with:
         # This requires all patterns to match a file for it to be
@@ -619,7 +619,7 @@ jobs:
   <summary>Pass a list of modified files as command-line arguments in a Linux shell</summary>
 
 ```yaml
-- uses: Ludy87/paths-filter@v3
+- uses: Ludy87/paths-filter@v4
   id: filter
   with:
     # Enable listing of files matching each filter.
@@ -645,7 +645,7 @@ jobs:
   <summary>Pass a list of modified files as a JSON array to another action</summary>
 
 ```yaml
-- uses: Ludy87/paths-filter@v3
+- uses: Ludy87/paths-filter@v4
   id: filter
   with:
     # Enable listing of files matching each filter.
@@ -670,7 +670,7 @@ jobs:
   <summary>Forward structured change metadata to downstream steps</summary>
 
 ```yaml
-- uses: Ludy87/paths-filter@v3
+- uses: Ludy87/paths-filter@v4
   id: filter
   with:
     # Enable listing of files matching each filter.
