@@ -36,6 +36,7 @@ jobs:
       - name: Run Pre-Commit Hooks
         run: |
           pip install --require-hashes -r ./.github/scripts/requirements_pre_commit.txt
+
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: 20
