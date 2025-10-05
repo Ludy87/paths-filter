@@ -20,6 +20,8 @@
   - [Example](#example)
   - [Notes](#notes)
   - [What's new](#whats-new)
+    - [v4.0.0](#v400)
+    - [v3 highlights](#v3-highlights)
   - [Usage](#usage)
   - [Outputs](#outputs)
   - [Examples](#examples)
@@ -165,6 +167,15 @@ Additional scenarios live in the [Examples](#examples) section.
   - Use `act -P ubuntu-latest=nektos/act-environments-ubuntu:18.04`.
 
 ## What's new
+
+### v4.0.0
+
+- Provide a `files` input to evaluate an explicit, newline-delimited list of files without invoking Git or the GitHub API.
+- Support `.gitignore`-style rules with the `global-ignore` input so that shared ignore patterns apply to every filter.
+- Introduce the `strict-excludes` safety net to treat any negated rule that matches as a hard stop for the entire filter set.
+- Automatically diff release events against the previous tag to make changelog-style workflows easier to automate.
+
+### v3 highlights
 
 - Major release `v3` after upgrading to Node 20 (**breaking change**)
 - Added the `ref` input parameter

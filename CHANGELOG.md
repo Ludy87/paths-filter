@@ -1,5 +1,12 @@
 # Changelog
 
+## v4.0.0
+
+- Add a `files` input so workflows can evaluate a precomputed list of paths without invoking Git or the GitHub API.
+- Support `.gitignore`-style patterns via the `global-ignore` input that applies before each filter runs.
+- Introduce `strict-excludes` to treat matches from negated rules as a hard stop for the entire filter set.
+- Enhance release event handling by automatically diffing the current tag against its predecessor.
+
 ## v3.3.1
 
 - [Format repository and refresh tooling configuration](https://github.com/Ludy87/paths-filter/pull/69)
