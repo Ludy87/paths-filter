@@ -132,6 +132,7 @@ export class Filter {
    */
   match(files: File[]): FilterResults {
     const results: FilterResults = {}
+    core.info(`Files: ${files.map((f) => f.filename).join(', ')}`)
 
     // Apply global ignores first
     let filteredFiles = files.filter(
