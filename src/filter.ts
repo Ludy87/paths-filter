@@ -136,6 +136,7 @@ export class Filter {
     let filteredFiles = files.filter(
       (file) => !this.globalIgnorePatterns.some((ignore) => ignore.matcher(file.filename) && !ignore.negated),
     )
+    core.info(`Files after global ignore: ${filteredFiles.map((f) => f.filename).join(', ')} Files: ${files.map((f) => f.filename).join(', ')}`)
 
     // New: Strict excludes check - if enabled, check if any file matches a negative pattern across all rules
     if (this.filterConfig.strictExcludes) {

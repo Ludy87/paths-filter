@@ -310,7 +310,6 @@ export function parseGitDiffOutput(output: string): File[] {
         secondPath = parsedSecondPath
         index = afterSecondPath
       }
-      core.info(`secondPath: ${secondPath} firstPath: ${firstPath} status: ${status} similarity: ${similarity}`)
 
       const destination = secondPath || firstPath
       const similarityScore = Number.isNaN(similarity) ? undefined : similarity
