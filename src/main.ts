@@ -140,6 +140,24 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
     return await git.getChanges(base || safeBase, currentRef)
   }
 
+  if (github.context.eventName === 'release') {
+    const releasePayload = github.context.payload as any
+    const currentTag = releasePayload.release?.tag_name
+    if (currentTag) {
+      if (!ref) {
+        ref = currentTag
+        core.info(`Using tag_name from release event as ref: ${ref}`)
+      }
+      if (!base) {
+        const previousTag = await git.getPreviousTag(currentTag)
+        base = previousTag
+        core.info(`Using previous tag from release event as base: ${base}`)
+      }
+    } else {
+      core.warning('No tag_name found in release payload; falling back to default handling')
+    }
+  }
+
   if (github.context.eventName === 'merge_group') {
     // To keep backward compatibility, manual inputs take precedence over
     // commits in GitHub merge queue event.
