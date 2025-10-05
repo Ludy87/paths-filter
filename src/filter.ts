@@ -138,7 +138,9 @@ export class Filter {
     let filteredFiles = files.filter(
       (file) => !this.globalIgnorePatterns.some((ignore) => ignore.matcher(file.filename) && !ignore.negated),
     )
-    core.info(`Files after global ignore: ${filteredFiles.map((f) => f.filename).join(', ')} Files: ${files.map((f) => f.filename).join(', ')}`)
+    core.info(
+      `Files after global ignore: ${filteredFiles.map((f) => f.filename).join(', ')} Files: ${files.map((f) => f.filename).join(', ')}`,
+    )
 
     // New: Strict excludes check - if enabled, check if any file matches a negative pattern across all rules
     if (this.filterConfig.strictExcludes) {
@@ -182,7 +184,7 @@ export class Filter {
         return false
       }
 
-      const pathVariants = this.getFilePathVariants(file)
+      const pathVariants = this.getFilePathVariants(file, rule)
       return pathVariants.some((variant) => rule.isMatch(variant))
     }
 
@@ -198,7 +200,7 @@ export class Filter {
     return positiveMatch && !negativeMatch
   }
 
-  private getFilePathVariants(file: File): string[] {
+  private getFilePathVariants(file: File, rule: FilterRuleItem): string[] {
     const variants = new Set<string>()
     variants.add(file.filename)
 
@@ -206,7 +208,12 @@ export class Filter {
       variants.add(file.to)
     }
 
-    const shouldIncludeSourcePaths = file.status !== ChangeStatus.Renamed && file.status !== ChangeStatus.Copied
+    const statuses = rule.status ?? []
+    const targetsRenamedStatus = statuses.includes(ChangeStatus.Renamed)
+
+    const shouldIncludeSourcePaths =
+      (!rule.negate && targetsRenamedStatus) ||
+      (!targetsRenamedStatus && file.status !== ChangeStatus.Renamed && file.status !== ChangeStatus.Copied)
 
     if (shouldIncludeSourcePaths && file.from) {
       variants.add(file.from)

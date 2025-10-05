@@ -65,6 +65,24 @@ describe('git diff parsing helpers', () => {
     )
   })
 
+  test('getChanges preserves source path for renamed files', async () => {
+    getExecOutputMock.mockResolvedValueOnce({ exitCode: 0, stdout: '', stderr: '' })
+    getExecOutputMock.mockResolvedValueOnce({ exitCode: 0, stdout: '', stderr: '' })
+    const diffOutput = ['R100', 'src/old.ts', 'src/new.ts', ''].join(String.fromCharCode(0))
+    getExecOutputMock.mockResolvedValueOnce({ exitCode: 0, stdout: diffOutput, stderr: '' })
+
+    const files = await git.getChanges('base', 'head')
+    expect(files).toEqual([
+      {
+        filename: 'src/new.ts',
+        status: ChangeStatus.Renamed,
+        from: 'src/old.ts',
+        to: 'src/new.ts',
+        similarity: 100,
+      },
+    ])
+  })
+
   test('getLocalRef accepts commit SHAs without failing lookups', async () => {
     getExecOutputMock.mockResolvedValueOnce({ exitCode: 1, stdout: '', stderr: '' })
     getExecOutputMock.mockResolvedValueOnce({ exitCode: 1, stdout: '', stderr: '' })

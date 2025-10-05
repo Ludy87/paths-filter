@@ -114,7 +114,14 @@ export function isGitSha(ref: string): boolean {
   return /^[0-9a-f]{40}$/.test(ref)
 }
 
+async function hasCommit(ref: string): Promise<boolean> {
+  return (await getExecOutput('git', ['cat-file', '-e', `${ref}^{commit}`], { ignoreReturnCode: true })).exitCode === 0
+}
+
 export async function getLocalRef(name: string): Promise<string | undefined> {
+  if (isGitSha(name)) {
+    return (await hasCommit(name)) ? name : undefined
+  }
   const refs = await getExecOutput('git', ['show-ref', '--verify', '-q', `refs/heads/${name}`], {
     ignoreReturnCode: true,
   })

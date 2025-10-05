@@ -245,6 +245,25 @@ describe('matching tests', () => {
     expect(match.rename).toEqual(files)
   })
 
+  test('matches renamed files using their original path when rule targets rename status', () => {
+    const yaml = `
+    docs:
+      - renamed: 'README.md'
+    `
+    const filter = createFilter(yaml)
+    const files = [
+      {
+        filename: 'README_RENAMED.md',
+        status: ChangeStatus.Renamed,
+        from: 'README.md',
+        to: 'README_RENAMED.md',
+      },
+    ]
+
+    const match = filter.match(files)
+    expect(match.docs).toEqual(files)
+  })
+
   test('matches copied files using their destination path', () => {
     const yaml = `
     copyDestination:
