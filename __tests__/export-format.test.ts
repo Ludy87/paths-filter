@@ -31,7 +31,7 @@ describe('exportResults file listing formats', () => {
   })
 
   test('exports detailed json formatted list', () => {
-    exportResults(results, 'json-detailed')
+    exportResults(results, 'json-detailed', false)
     expect(core.setOutput).toHaveBeenCalledWith(
       'sample_files',
       JSON.stringify([
