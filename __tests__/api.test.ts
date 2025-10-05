@@ -62,7 +62,7 @@ describe('getChangedFilesFromApi', () => {
       head: { sha: 'head-sha' },
     } as unknown as PullRequest
 
-    const files = await getChangedFilesFromApi('token', pr)
+    const files = await getChangedFilesFromApi('token', pr, 1)
 
     // Expect "from" to be set
     expect(files).toEqual([
@@ -93,7 +93,7 @@ describe('getChangedFilesFromApi', () => {
       head: { sha: 'head-sha' },
     } as unknown as PullRequest
 
-    const files = await getChangedFilesFromApi('token', pr)
+    const files = await getChangedFilesFromApi('token', pr, 1)
 
     // Renamed files return a single entry with both source and destination
     // Copied files retain their source path in "from"
@@ -131,9 +131,9 @@ describe('getChangedFilesFromApi', () => {
     const getChangesMock = git.getChanges as jest.MockedFunction<typeof git.getChanges>
     getChangesMock.mockResolvedValue(gitResult)
 
-    const files = await getChangedFilesFromApi('token', pr)
+    const files = await getChangedFilesFromApi('token', pr, 1)
 
-    expect(getChangesMock).toHaveBeenCalledWith('base-sha', 'head-sha')
+    expect(getChangesMock).toHaveBeenCalledWith('base-sha', 'head-sha', 1)
     expect(files).toEqual(gitResult)
   })
 })

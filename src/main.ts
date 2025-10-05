@@ -126,7 +126,7 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
     }
     const pr = github.context.payload.pull_request as PullRequest
     if (token) {
-      return await getChangedFilesFromApi(token, pr)
+      return await getChangedFilesFromApi(token, pr, initialFetchDepth)
     }
     if (github.context.eventName === 'pull_request_target') {
       // pull_request_target is executed in context of base branch and GITHUB_SHA points to last commit in base branch
@@ -140,7 +140,7 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
       ?.default_branch
     const currentRef = await git.getCurrentRef()
     const safeBase = typeof baseSha === 'string' ? baseSha : typeof defaultBranch === 'string' ? defaultBranch : ''
-    return await git.getChanges(base || safeBase, currentRef)
+    return await git.getChanges(base || safeBase, currentRef, initialFetchDepth)
   }
 
   if (github.context.eventName === 'release') {
@@ -212,7 +212,7 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
   if (isBaseSha || (isBaseSameAsHead && beforeSha !== null && beforeSha !== git.NULL_SHA)) {
     const baseSha = isBaseSha ? base : beforeSha!
     core.info(`Changes will be detected between ${baseSha} and ${head}`)
-    return await git.getChanges(baseSha, head)
+    return await git.getChanges(baseSha, head, initialFetchDepth)
   }
 
   if (isBaseSameAsHead && beforeSha !== null && beforeSha === git.NULL_SHA) {
@@ -230,7 +230,11 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
 }
 
 // Uses github REST api to get list of files changed in PR
-async function getChangedFilesFromApi(token: string, pullRequest: PullRequest): Promise<File[]> {
+async function getChangedFilesFromApi(
+  token: string,
+  pullRequest: PullRequest,
+  initialFetchDepth: number,
+): Promise<File[]> {
   core.startGroup(`Fetching list of changed files for PR#${pullRequest.number} from GitHub API`)
   try {
     const client = github.getOctokit(token)
@@ -315,7 +319,7 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequest): 
         core.warning(
           `Incomplete API fetch detected (${files.length} files); falling back to Git diff for full detection`,
         )
-        return await git.getChanges(baseSha, headSha)
+        return await git.getChanges(baseSha, headSha, initialFetchDepth)
       }
     }
 

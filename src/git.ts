@@ -19,9 +19,10 @@ export async function getChangesInLastCommit(): Promise<File[]> {
   return parseGitDiffOutput(output)
 }
 
-export async function getChanges(base: string, head: string): Promise<File[]> {
-  const baseRef = await ensureRefAvailable(base)
-  const headRef = await ensureRefAvailable(head)
+export async function getChanges(base: string, head: string, fetchDepth = 1): Promise<File[]> {
+  const depth = Number.isFinite(fetchDepth) && fetchDepth > 0 ? Math.floor(fetchDepth) : 1
+  const baseRef = await ensureRefAvailable(base, depth)
+  const headRef = await ensureRefAvailable(head, depth)
 
   // Get differences between ref and HEAD
   core.startGroup(`Change detection ${base}..${head}`)
@@ -160,15 +161,16 @@ export async function getPreviousTag(currentTag: string): Promise<string> {
   }
 }
 
-async function ensureRefAvailable(name: string): Promise<string> {
+async function ensureRefAvailable(name: string, fetchDepth = 1): Promise<string> {
+  const depth = Number.isFinite(fetchDepth) && fetchDepth > 0 ? Math.floor(fetchDepth) : 1
   core.startGroup(`Ensuring ${name} is fetched from origin`)
   try {
     let ref = await getLocalRef(name)
     if (ref === undefined) {
-      await getExecOutput('git', ['fetch', '--depth=1', '--no-tags', 'origin', name])
+      await getExecOutput('git', ['fetch', `--depth=${depth}`, '--no-tags', 'origin', name])
       ref = await getLocalRef(name)
       if (ref === undefined) {
-        await getExecOutput('git', ['fetch', '--depth=1', '--tags', 'origin', name])
+        await getExecOutput('git', ['fetch', `--depth=${depth}`, '--tags', 'origin', name])
         ref = await getLocalRef(name)
         if (ref === undefined) {
           throw new Error(`Could not determine what is ${name} - fetch works but it's not a branch, tag or commit SHA`)
