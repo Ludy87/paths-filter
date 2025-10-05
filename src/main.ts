@@ -1,4 +1,6 @@
 import * as fs from 'fs'
+import * as path from 'path'
+import * as os from 'os'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { GetResponseDataTypeFromEndpointMethod } from '@octokit/types'
@@ -32,12 +34,17 @@ async function run(): Promise<void> {
     const filtersInput = core.getInput('filters', { required: true })
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
     const listFiles = core.getInput('list-files', { required: false }).toLowerCase() || 'none'
+    const writeToFiles = core.getInput('write-to-files', { required: false }) === 'true'
     const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', { required: false })) || 10
     const predicateQuantifier = core.getInput('predicate-quantifier', { required: false }) || PredicateQuantifier.SOME
 
     if (!isExportFormat(listFiles)) {
       core.setFailed(`Input parameter 'list-files' is set to invalid value '${listFiles}'`)
       return
+    }
+
+    if (writeToFiles && listFiles === 'none') {
+      core.warning('write-to-files is true, but list-files is "none". No file will be written.')
     }
 
     if (!isPredicateQuantifier(predicateQuantifier)) {
@@ -52,7 +59,7 @@ async function run(): Promise<void> {
     const files = await getChangedFiles(token, base, ref, initialFetchDepth)
     core.info(`Detected ${files.length} changed files`)
     const results = filter.match(files)
-    exportResults(results, listFiles)
+    exportResults(results, listFiles, writeToFiles)
   } catch (error) {
     core.setFailed(getErrorMessage(error))
   }
@@ -102,7 +109,7 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
       // At the same time we don't want to fetch any code from forked repository
       throw new Error(`'token' input parameter is required if action is triggered by 'pull_request_target' event`)
     }
-    core.info('Github token is not available - changes will be detected using git diff')
+    core.info('GitHub token is not available - changes will be detected using git diff')
     const baseSha = (github.context.payload as PullRequestEvent).pull_request?.base.sha
     const defaultBranch: string | undefined = (github.context.payload.repository as { default_branch?: string })
       ?.default_branch
@@ -182,7 +189,7 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
 
 // Uses github REST api to get list of files changed in PR
 async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEvent): Promise<File[]> {
-  core.startGroup(`Fetching list of changed files for PR#${pullRequest.number} from Github API`)
+  core.startGroup(`Fetching list of changed files for PR#${pullRequest.number} from GitHub API`)
   try {
     const client = github.getOctokit(token)
     const per_page = 100
@@ -243,7 +250,7 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
             })
           }
         } else {
-          // Github status and git status variants are same except for deleted files
+          // GitHub status and git status variants are same except for deleted files
           const status = row.status === 'removed' ? ChangeStatus.Deleted : (row.status as ChangeStatus)
           files.push({
             from: row.filename,
@@ -260,7 +267,22 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
   }
 }
 
-export function exportResults(results: FilterResults, format: ExportFormat): void {
+function getExtension(format: ExportFormat): string {
+  switch (format) {
+    case 'json':
+      return 'json'
+    case 'csv':
+      return 'csv'
+    case 'shell':
+    case 'escape':
+    case 'lines':
+      return 'txt'
+    default:
+      return 'txt'
+  }
+}
+
+export function exportResults(results: FilterResults, format: ExportFormat, writeToFiles: boolean): void {
   core.info('Results:')
   const changes: string[] = []
   let anyChanged = false
@@ -293,11 +315,27 @@ export function exportResults(results: FilterResults, format: ExportFormat): voi
       core.info('Matching files: none')
     }
 
+    // Always set outputs, regardless of value (Backward Compatibility)
     core.setOutput(key, value)
     core.setOutput(`${key}_count`, files.length)
     if (format !== 'none') {
       const filesValue = serializeExport(files, format)
       core.setOutput(`${key}_files`, filesValue)
+
+      // New write-to-files logic: Write file if writeToFiles is true and matches are present
+      if (writeToFiles && value) {
+        const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'paths-filter-'))
+        const ext = getExtension(format)
+        const fileName = `${key}_files.${ext}`
+        const filePath = path.join(tempDir, fileName)
+        try {
+          fs.writeFileSync(filePath, filesValue, { encoding: 'utf8' })
+          core.setOutput(`${key}_files_path`, filePath)
+          core.info(`Wrote matching files to: ${filePath}`)
+        } catch (error) {
+          core.error(`Failed to write file for filter ${key}: ${getErrorMessage(error)}`)
+        }
+      }
     }
     core.endGroup()
   }
