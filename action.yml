@@ -70,6 +70,12 @@ inputs:
        - '!**/*.md'
     required: false
     default: 'some'
+  files:
+    description: 'Custom list of changed files (newline-separated). If provided, skips automatic change detection.'
+    required: false
+  global-ignore:
+    description: 'Path to a file containing global ignore patterns (one per line, like .gitignore).'
+    required: false
 outputs:
   all_changed:
     description: Boolean value indicating if all of the filters contained at least one changed file. If no filters matched, this value is 'true'.

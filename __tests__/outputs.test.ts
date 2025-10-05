@@ -44,3 +44,17 @@ describe('all_changed and any_changed outputs', () => {
     expect(core.setOutput).toHaveBeenCalledWith('any_changed', false)
   })
 })
+
+test('does not create file paths when writeToFiles is enabled but no files match', () => {
+  const results = {
+    src: [],
+  }
+
+  exportResults(results, 'json', true)
+
+  const setOutputMock = core.setOutput as jest.MockedFunction<typeof core.setOutput>
+  const pathOutputCalls = setOutputMock.mock.calls.filter(([name]) => name.endsWith('_files_path'))
+
+  expect(pathOutputCalls).toHaveLength(0)
+  expect(core.setOutput).toHaveBeenCalledWith('src_files', '[]')
+})

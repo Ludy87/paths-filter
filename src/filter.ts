@@ -1,3 +1,4 @@
+import * as fs from 'fs'
 import * as jsyaml from 'js-yaml'
 import picomatch from 'picomatch'
 import { File, ChangeStatus } from './file'
@@ -11,6 +12,8 @@ type FilterItemYaml =
   | string
   // Change status and filename, e.g. added|modified: "path/to/*.js"
   | { [changeTypes: string]: string | string[] }
+  // Ignore patterns, e.g. paths-ignore: "docs/**"
+  | { pathsIgnore?: string | string[] }
   // Supports referencing another rule via YAML anchor
   | FilterItemYaml[]
 
@@ -57,7 +60,10 @@ export enum PredicateQuantifier {
 /**
  * Used to define customizations for how the file filtering should work at runtime.
  */
-export type FilterConfig = { readonly predicateQuantifier: PredicateQuantifier }
+export type FilterConfig = {
+  readonly predicateQuantifier: PredicateQuantifier
+  globalIgnore?: string // Path to global ignore file
+}
 
 /**
  * An array of strings (at runtime) that contains the valid/accepted values for
@@ -75,6 +81,7 @@ export interface FilterResults {
 
 export class Filter {
   rules: { [key: string]: FilterRuleItem[] } = {}
+  private globalIgnorePatterns: ((str: string) => boolean)[] = [] // Cached global ignore matchers
 
   // Creates instance of Filter and load rules from YAML if it's provided
   constructor(
@@ -83,6 +90,10 @@ export class Filter {
   ) {
     if (yaml) {
       this.load(yaml)
+    }
+    // Load global ignores if provided
+    if (this.filterConfig?.globalIgnore) {
+      this.loadGlobalIgnores(this.filterConfig.globalIgnore)
     }
   }
 
@@ -102,10 +113,31 @@ export class Filter {
     }
   }
 
+  // Load global ignore patterns from file
+  private loadGlobalIgnores(globalIgnorePath: string): void {
+    try {
+      const ignoreContent = fs.readFileSync(globalIgnorePath, 'utf8')
+      const patterns = ignoreContent
+        .split(/\r?\n/)
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0 && !p.startsWith('#'))
+      // Fixed: No 'negate: true' in options – invert logic in match() instead
+      this.globalIgnorePatterns = patterns.map((pattern) => picomatch(pattern, MatchOptions))
+    } catch (error) {
+      throw new Error(`Failed to load global-ignore file '${globalIgnorePath}': ${error}`)
+    }
+  }
+
   match(files: File[]): FilterResults {
+    // Apply global ignores first (invert match for exclusion)
+    const filteredFiles =
+      this.globalIgnorePatterns.length > 0
+        ? files.filter((file) => !this.globalIgnorePatterns.some((isMatch) => isMatch(file.filename)))
+        : files
+
     const result: FilterResults = {}
     for (const [key, patterns] of Object.entries(this.rules)) {
-      result[key] = files.filter((file) => this.isMatch(file, patterns))
+      result[key] = filteredFiles.filter((file) => this.isMatch(file, patterns))
     }
     return result
   }
@@ -150,7 +182,21 @@ export class Filter {
       return [{ status: undefined, isMatch: picomatch(pattern, MatchOptions), negate: negated }]
     }
 
-    if (typeof item === 'object') {
+    if (typeof item === 'object' && item !== null) {
+      // Handle paths-ignore
+      if ('paths-ignore' in item) {
+        const patterns = Array.isArray(item['paths-ignore']) ? item['paths-ignore'] : [item['paths-ignore']]
+        return patterns.map((p: string) => {
+          const negated = p.startsWith('!')
+          const pat = negated ? p.slice(1) : p
+          return {
+            status: undefined,
+            isMatch: picomatch(pat, MatchOptions),
+            negate: true, // paths-ignore always negates
+          }
+        })
+      }
+
       return Object.entries(item).flatMap(([key, pattern]) => {
         if (typeof key !== 'string' || (typeof pattern !== 'string' && !Array.isArray(pattern))) {
           this.throwInvalidFormatError(

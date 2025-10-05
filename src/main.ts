@@ -35,6 +35,8 @@ async function run(): Promise<void> {
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
     const listFiles = core.getInput('list-files', { required: false }).toLowerCase() || 'none'
     const writeToFiles = core.getInput('write-to-files', { required: false }) === 'true'
+    const filesInput = core.getInput('files', { required: false }) // New: Custom files list
+    const globalIgnore = core.getInput('global-ignore', { required: false }) // New: Global ignore file
     const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', { required: false })) || 10
     const predicateQuantifier = core.getInput('predicate-quantifier', { required: false }) || PredicateQuantifier.SOME
 
@@ -53,11 +55,31 @@ async function run(): Promise<void> {
         `'${predicateQuantifier}'. Valid values: ${SUPPORTED_PREDICATE_QUANTIFIERS.join(', ')}`
       throw new Error(predicateQuantifierInvalidErrorMsg)
     }
-    const filterConfig: FilterConfig = { predicateQuantifier }
 
-    const filter = new Filter(filtersYaml, filterConfig)
-    const files = await getChangedFiles(token, base, ref, initialFetchDepth)
+    // Determine files: Use custom input if provided, else compute via Git/API
+    let files: File[]
+    if (filesInput) {
+      core.info(`Using custom files input (${filesInput.split('\n').filter(Boolean).length} files)`)
+      files = filesInput
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .map((filename) => ({
+          filename,
+          status: ChangeStatus.Modified, // Default status for custom files
+          from: filename,
+        }))
+    } else {
+      files = await getChangedFiles(token, base, ref, initialFetchDepth)
+    }
+
     core.info(`Detected ${files.length} changed files`)
+
+    const filterConfig: FilterConfig = {
+      predicateQuantifier,
+      globalIgnore: globalIgnore || undefined,
+    }
+    const filter = new Filter(filtersYaml, filterConfig)
     const results = filter.match(files)
     exportResults(results, listFiles, writeToFiles)
   } catch (error) {
@@ -333,7 +355,9 @@ export function exportResults(results: FilterResults, format: ExportFormat, writ
           core.setOutput(`${key}_files_path`, filePath)
           core.info(`Wrote matching files to: ${filePath}`)
         } catch (error) {
-          core.error(`Failed to write file for filter ${key}: ${getErrorMessage(error)}`)
+          // Fixed: Extract message first to satisfy ESLint (unknown -> string)
+          const errorMsg = getErrorMessage(error)
+          core.error(`Failed to write file for filter ${key}: ${errorMsg}`)
         }
       }
     }
