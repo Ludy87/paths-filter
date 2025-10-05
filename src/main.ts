@@ -161,7 +161,10 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
   const repository = github.context.payload.repository as { default_branch?: string } | undefined
   const defaultBranch: string | undefined = repository?.default_branch
 
-  const beforeSha = github.context.eventName === 'push' ? (github.context.payload as PushEvent).before : null
+  let beforeSha: string | null = null
+  if (github.context.eventName === 'push') {
+    beforeSha = (github.context.payload as PushEvent).before
+  }
 
   const currentRef = await git.getCurrentRef()
 
@@ -185,21 +188,20 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
 
   // If base is commit SHA we will do comparison against the referenced commit
   // Or if base references same branch it was pushed to, we will do comparison against the previously pushed commit
-  if (isBaseSha || isBaseSameAsHead) {
-    let baseSha: string
-    if (isBaseSha) {
-      baseSha = base
-    } else {
-      baseSha = beforeSha ?? ''
-      if (baseSha === null || baseSha === '') {
-        core.warning(`'before' field is missing or null in event payload - falling back to merge base comparison`)
-        // Then use merge-base instead of throwing an error
-        core.info(`Changes will be detected between ${base} and ${head}`)
-        return await git.getChangesSinceMergeBase(base, head, initialFetchDepth)
-      }
-    }
+  if (isBaseSha || (isBaseSameAsHead && beforeSha !== null && beforeSha !== git.NULL_SHA)) {
+    const baseSha = isBaseSha ? base : beforeSha!
     core.info(`Changes will be detected between ${baseSha} and ${head}`)
     return await git.getChanges(baseSha, head)
+  }
+
+  if (isBaseSameAsHead && beforeSha !== null && beforeSha === git.NULL_SHA) {
+    core.warning(
+      `'before' field is NULL_SHA (initial push) - will use merge base comparison instead of previous commit`,
+    )
+  } else if (isBaseSameAsHead && beforeSha === null) {
+    core.warning(
+      `'before' field is missing in event payload - will use merge base comparison instead of previous commit`,
+    )
   }
 
   core.info(`Changes will be detected between ${base} and ${head}`)
