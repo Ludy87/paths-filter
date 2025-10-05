@@ -19,7 +19,7 @@ describe('all_changed and any_changed outputs', () => {
       src: [{ filename: 'src/file.ts', status: ChangeStatus.Modified, from: 'src/file.ts' }],
       docs: [{ filename: 'docs/readme.md', status: ChangeStatus.Added, from: 'docs/readme.md' }],
     }
-    exportResults(results, 'none')
+    exportResults(results, 'none', false)
     expect(core.setOutput).toHaveBeenCalledWith('all_changed', true)
     expect(core.setOutput).toHaveBeenCalledWith('any_changed', true)
   })
@@ -29,7 +29,7 @@ describe('all_changed and any_changed outputs', () => {
       src: [{ filename: 'src/file.ts', status: ChangeStatus.Modified, from: 'src/file.ts' }],
       docs: [],
     }
-    exportResults(results, 'none')
+    exportResults(results, 'none', false)
     expect(core.setOutput).toHaveBeenCalledWith('all_changed', false)
     expect(core.setOutput).toHaveBeenCalledWith('any_changed', true)
   })
@@ -39,7 +39,7 @@ describe('all_changed and any_changed outputs', () => {
       src: [],
       docs: [],
     }
-    exportResults(results, 'none')
+    exportResults(results, 'none', false)
     expect(core.setOutput).toHaveBeenCalledWith('all_changed', false)
     expect(core.setOutput).toHaveBeenCalledWith('any_changed', false)
   })

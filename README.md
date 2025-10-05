@@ -8,18 +8,24 @@
 
 ## Table of contents
 
-- [Motivation](#motivation)
-- [Requirements](#requirements)
-- [Supported workflows](#supported-workflows)
-- [Quickstart](#quickstart)
-- [Example](#example)
-- [Notes](#notes)
-- [What's new](#whats-new)
-- [Usage](#usage)
-- [Outputs](#outputs)
-- [Examples](#examples)
-- [Additional resources](#additional-resources)
-- [License](#license)
+- [Paths Changes Filter - Change by @Ludy87](#paths-changes-filter---change-by-ludy87)
+  - [Table of contents](#table-of-contents)
+  - [Motivation](#motivation)
+  - [Requirements](#requirements)
+  - [Supported workflows](#supported-workflows)
+  - [Quickstart](#quickstart)
+  - [Example](#example)
+  - [Notes](#notes)
+  - [What's new](#whats-new)
+  - [Usage](#usage)
+  - [Outputs](#outputs)
+  - [Examples](#examples)
+    - [Conditional execution](#conditional-execution)
+    - [Change detection workflows](#change-detection-workflows)
+    - [Advanced options](#advanced-options)
+    - [Custom processing of changed files](#custom-processing-of-changed-files)
+  - [Additional resources](#additional-resources)
+  - [License](#license)
 
 ## Motivation
 
@@ -128,6 +134,7 @@ Additional scenarios live in the [Examples](#examples) section.
 - Added `list-files: lines` format
 - Configure a matrix job to run for each folder with changes using the `changes` output
 - Improved listing of matching files with the `list-files: shell` and `list-files: escape` options
+- Added optional `write-to-files` support to export matched files to temporary files
 - Path expressions are now evaluated using the [picomatch](https://github.com/micromatch/picomatch) library
 
 For more information, see the [CHANGELOG](https://github.com/Ludy87/paths-filter/blob/master/CHANGELOG.md).
@@ -194,6 +201,12 @@ For more information, see the [CHANGELOG](https://github.com/Ludy87/paths-filter
     # Default: none
     list-files: ''
 
+    # Writes the list of matching files for each filter to a temporary file and
+    # exposes the path via an additional `${FILTER_NAME}_files_path` output.
+    # Has an effect only when `list-files` is set to a format other than 'none'.
+    # Default: false
+    write-to-files: ''
+
     # Relative path under $GITHUB_WORKSPACE where the repository was checked out.
     working-directory: ''
 
@@ -232,6 +245,9 @@ For more information, see the [CHANGELOG](https://github.com/Ludy87/paths-filter
 - `all_changed` – `'true'` only if every filter matches at least one changed file; otherwise `'false'`.
 - `any_changed` – `'true'` if **any** filter matches at least one changed file; otherwise `'false'`.
 - `changes` – JSON array listing all filters that matched at least one changed file.
+- `${FILTER_NAME}_files_path` – Absolute path to the temporary file containing the
+  serialized list of matching files (available only when `write-to-files` is enabled
+  and the filter matched at least one file).
 
 ## Examples
 

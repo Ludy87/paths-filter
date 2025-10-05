@@ -37,6 +37,13 @@ inputs:
         'lines' - Newline delimited list of files without any escaping.
     required: false
     default: 'none'
+  write-to-files:
+    description: |
+      When set to 'true', writes the list of matching files for each filter to a
+      temporary file and exposes its location through the `${FILTER_NAME}_files_path`
+      output. Requires `list-files` to be set to a format other than 'none'.
+    required: false
+    default: 'false'
   initial-fetch-depth:
     description: |
       How many commits are initially fetched from base branch.
