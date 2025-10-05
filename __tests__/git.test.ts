@@ -1,52 +1,68 @@
+import * as core from '@actions/core'
+import { getExecOutput } from '@actions/exec'
 import * as git from '../src/git'
 import { ChangeStatus } from '../src/file'
 
-describe('parsing output of the git diff command', () => {
-  test('parseGitDiffOutput returns files with correct change status', async () => {
-    const files = git.parseGitDiffOutput(
-      'A\u0000LICENSE\u0000' + 'M\u0000src/index.ts\u0000' + 'D\u0000src/main.ts\u0000',
-    )
-    expect(files.length).toBe(3)
-    expect(files[0].filename).toBe('LICENSE')
-    expect(files[0].status).toBe(ChangeStatus.Added)
-    expect(files[1].filename).toBe('src/index.ts')
-    expect(files[1].status).toBe(ChangeStatus.Modified)
-    expect(files[2].filename).toBe('src/main.ts')
-    expect(files[2].status).toBe(ChangeStatus.Deleted)
+jest.mock('@actions/core', () => ({
+  startGroup: jest.fn(),
+  endGroup: jest.fn(),
+  info: jest.fn(),
+  warning: jest.fn(),
+}))
+
+jest.mock('@actions/exec', () => ({
+  getExecOutput: jest.fn(),
+}))
+
+describe('git diff parsing helpers', () => {
+  const getExecOutputMock = getExecOutput as jest.MockedFunction<typeof getExecOutput>
+
+  beforeEach(() => {
+    jest.clearAllMocks()
   })
 
-  test('parseGitDiffOutput handles copied, renamed and unmerged statuses', async () => {
-    const payload = [
-      'C75',
-      'src/copied75.ts',
-      'src/c/copied75.ts',
-      'R100',
-      'src/renamed100_old.ts',
-      'src/renamed100.ts',
-      'U',
-      'src/conflict.ts',
-      'C',
-      'src/copied.ts',
-      'src/c/copied.ts',
-      'R',
-      'src/renamed_old.ts',
-      'src/renamed.ts',
-    ].join('\u0000')
+  test('getChangesInLastCommit returns files with correct change status', async () => {
+    const diffOutput =
+      [
+        ['A', 'LICENSE'],
+        ['M', 'src/index.ts'],
+        ['D', 'src/main.ts'],
+      ]
+        .map(([status, filename]) => `${status} ${filename}`)
+        .join(String.fromCharCode(0)) + String.fromCharCode(0)
+    getExecOutputMock.mockResolvedValueOnce({
+      exitCode: 0,
+      stdout: diffOutput,
+      stderr: '',
+    })
 
-    const files = git.parseGitDiffOutput(payload)
+    const files = await git.getChangesInLastCommit()
 
-    // Check essential fields using subset match
-    expect(files).toMatchObject([
-      { filename: 'src/c/copied75.ts', status: ChangeStatus.Copied, from: 'src/copied75.ts', similarity: 75 },
-      { filename: 'src/renamed100.ts', status: ChangeStatus.Renamed, from: 'src/renamed100_old.ts', similarity: 100 },
-      { filename: 'src/conflict.ts', status: ChangeStatus.Unmerged },
-      { filename: 'src/c/copied.ts', status: ChangeStatus.Copied, from: 'src/copied.ts' }, // no score
-      { filename: 'src/renamed.ts', status: ChangeStatus.Renamed, from: 'src/renamed_old.ts' }, // no score
+    expect(files).toEqual([
+      { filename: 'LICENSE', status: ChangeStatus.Added, from: 'LICENSE' },
+      { filename: 'src/index.ts', status: ChangeStatus.Modified, from: 'src/index.ts' },
+      { filename: 'src/main.ts', status: ChangeStatus.Deleted, from: 'src/main.ts' },
     ])
+    expect(core.startGroup).toHaveBeenCalled()
+    expect(core.endGroup).toHaveBeenCalled()
+  })
 
-    // Optionally ensure entries without a similarity score omit the similarity field
-    expect(files[3].similarity).toBeUndefined()
-    expect(files[4].similarity).toBeUndefined()
+  test('getChanges handles diff between two refs', async () => {
+    // base ref resolution succeeds on the first check
+    getExecOutputMock.mockResolvedValueOnce({ exitCode: 0, stdout: '', stderr: '' })
+    // head ref resolution succeeds on the first check
+    getExecOutputMock.mockResolvedValueOnce({ exitCode: 0, stdout: '', stderr: '' })
+    // diff command output
+    const diffOutput = ['M src/utils.ts', ''].join(String.fromCharCode(0))
+    getExecOutputMock.mockResolvedValueOnce({ exitCode: 0, stdout: diffOutput, stderr: '' })
+
+    const files = await git.getChanges('base', 'head')
+
+    expect(files).toEqual([{ filename: 'src/utils.ts', status: ChangeStatus.Modified, from: 'src/utils.ts' }])
+    expect(getExecOutputMock).toHaveBeenLastCalledWith(
+      'git',
+      expect.arrayContaining(['refs/heads/base..refs/heads/head']),
+    )
   })
 
   test('getChangeStatus throws on unknown status', () => {

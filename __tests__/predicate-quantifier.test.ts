@@ -10,6 +10,6 @@ describe('isPredicateQuantifier', () => {
   test('returns false for unsupported values including sample', () => {
     expect(isPredicateQuantifier('sample')).toBe(false)
     expect(isPredicateQuantifier('')).toBe(false)
-    expect(isPredicateQuantifier(undefined)).toBe(false)
+    expect(isPredicateQuantifier(undefined as unknown as string)).toBe(false)
   })
 })

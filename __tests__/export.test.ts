@@ -1,9 +1,9 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import * as core from '@actions/core'
-import { Filter } from '../src/filter'
 import { File, ChangeStatus } from '../src/file'
 import { exportResults } from '../src/main'
+import { createFilter } from './helpers'
 
 jest.mock('@actions/core', () => ({
   info: jest.fn(),
@@ -22,9 +22,11 @@ describe('set output post filtering', () => {
   test('correctly sets output', () => {
     const yaml = `
     backend:
-      - '!(**/*.tsx|**/*.less)'
+      - '**/*'
+      - '!**/*.tsx'
+      - '!**/*.less'
     `
-    const filter = new Filter(yaml)
+    const filter = createFilter(yaml)
     const files = modified(['config/settings.yml'])
     const match = filter.match(files)
     exportResults(match, 'none', false)
@@ -37,7 +39,7 @@ describe('set output post filtering', () => {
     backend:
       - 'backend/**'
     `
-    const filter = new Filter(yaml)
+    const filter = createFilter(yaml)
     const files = modified(['backend/src/index.ts'])
     const match = filter.match(files)
 
@@ -64,8 +66,11 @@ describe('set output post filtering', () => {
       - src/**/*
     backend:
       - '!(**/*.tsx|**/*.less)'
+      - '**/*'
+      - '!**/*.tsx'
+      - '!**/*.less'
     `
-    const filter = new Filter(yaml)
+    const filter = createFilter(yaml)
     const files = modified(['config/settings.yml'])
     const match = filter.match(files)
     exportResults(match, 'none', false)
