@@ -236,19 +236,58 @@ export function parseGitDiffOutput(output: string): File[] {
   const files: File[] = []
   let index = 0
   while (index < output.length) {
-    const [statusToken, nextIndex] = parseNullTerminated(output, index)
+    const [rawStatusToken, nextIndex] = parseNullTerminated(output, index)
     index = nextIndex
 
-    if (!statusToken) {
+    if (!rawStatusToken) {
       break
+    }
+
+    let statusToken = rawStatusToken
+    let inlineFirstPath: string | undefined
+    let inlineSecondPath: string | undefined
+
+    const firstSeparatorIndex = statusToken.search(/[\s\t]/)
+    if (firstSeparatorIndex !== -1) {
+      const inlinePathText = statusToken.slice(firstSeparatorIndex + 1)
+      statusToken = statusToken.slice(0, firstSeparatorIndex)
+
+      // Git can separate inline paths with either spaces or tabs depending on the flags used.
+      const tabSeparated = inlinePathText.split('\t')
+      if (tabSeparated.length > 1) {
+        ;[inlineFirstPath, inlineSecondPath] = tabSeparated
+      } else {
+        inlineFirstPath = inlinePathText
+      }
+
+      if (inlineSecondPath === undefined && inlineFirstPath !== undefined) {
+        const spaceIndex = inlineFirstPath.indexOf(' ')
+        if (spaceIndex !== -1) {
+          inlineSecondPath = inlineFirstPath.slice(spaceIndex + 1)
+          inlineFirstPath = inlineFirstPath.slice(0, spaceIndex)
+        }
+      }
+
+      if (inlineFirstPath !== undefined) {
+        inlineFirstPath = inlineFirstPath.trim()
+      }
+      if (inlineSecondPath !== undefined) {
+        inlineSecondPath = inlineSecondPath.trim()
+      }
     }
 
     const statusCode = statusToken.charAt(0)
     const similarityText = statusToken.slice(1)
     const similarity = similarityText ? Number.parseInt(similarityText, 10) : undefined
 
-    const [firstPath, afterFirstPath] = parseNullTerminated(output, index)
-    index = afterFirstPath
+    let firstPath: string | undefined
+    if (inlineFirstPath !== undefined) {
+      firstPath = inlineFirstPath
+    } else {
+      const [parsedFirstPath, afterFirstPath] = parseNullTerminated(output, index)
+      firstPath = parsedFirstPath
+      index = afterFirstPath
+    }
 
     if (!firstPath) {
       continue
@@ -257,8 +296,14 @@ export function parseGitDiffOutput(output: string): File[] {
     const status = getChangeStatus(statusCode)
 
     if (status === ChangeStatus.Copied || status === ChangeStatus.Renamed) {
-      const [secondPath, afterSecondPath] = parseNullTerminated(output, index)
-      index = afterSecondPath
+      let secondPath: string | undefined
+      if (inlineSecondPath !== undefined) {
+        secondPath = inlineSecondPath
+      } else {
+        const [parsedSecondPath, afterSecondPath] = parseNullTerminated(output, index)
+        secondPath = parsedSecondPath
+        index = afterSecondPath
+      }
 
       const destination = secondPath || firstPath
       const similarityScore = Number.isNaN(similarity) ? undefined : similarity

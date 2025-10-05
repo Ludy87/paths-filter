@@ -198,13 +198,18 @@ export class Filter {
   private getFilePathVariants(file: File): string[] {
     const variants = new Set<string>()
     variants.add(file.filename)
+
     if (file.to) {
       variants.add(file.to)
     }
-    if (file.from) {
+
+    const shouldIncludeSourcePaths = file.status !== ChangeStatus.Renamed && file.status !== ChangeStatus.Copied
+
+    if (shouldIncludeSourcePaths && file.from) {
       variants.add(file.from)
     }
-    if (file.previous_filename) {
+
+    if (shouldIncludeSourcePaths && file.previous_filename) {
       variants.add(file.previous_filename)
     }
 
