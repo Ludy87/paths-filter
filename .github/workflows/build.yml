@@ -1,6 +1,7 @@
+name: Build
+
 permissions:
   contents: read
-name: "Build"
 
 on:
   push:
