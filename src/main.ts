@@ -215,6 +215,7 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
     const client = github.getOctokit(token)
     const per_page = 100
     const files: File[] = []
+    let totalPages = 0
 
     core.info(`Invoking listFiles(pull_number: ${pullRequest.number}, per_page: ${per_page})`)
     for await (const response of client.paginate.iterator(
@@ -228,6 +229,7 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
       if (response.status !== 200) {
         throw new Error(`Fetching list of changed files from GitHub API failed with error code ${response.status}`)
       }
+      totalPages++
       core.info(`Received ${response.data.length} items`)
 
       for (const row of response.data as GetResponseDataTypeFromEndpointMethod<typeof client.rest.pulls.listFiles>) {
@@ -280,6 +282,16 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
           })
         }
       }
+    }
+
+    core.info(`Fetched ${files.length} files over ${totalPages} pages`)
+
+    // New: Fallback for large PRs if API fetch seems incomplete (e.g., < 4000 files threshold from issue reports)
+    if (files.length < 4000 && pullRequest.number > 0) {
+      core.warning(`Incomplete API fetch detected (${files.length} files); falling back to Git diff for full detection`)
+      const baseSha = pullRequest.base.sha
+      const headSha = pullRequest.head.sha
+      return await git.getChanges(baseSha, headSha)
     }
 
     return files
