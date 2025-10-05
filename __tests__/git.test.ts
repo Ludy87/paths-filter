@@ -65,6 +65,25 @@ describe('git diff parsing helpers', () => {
     )
   })
 
+  test('getLocalRef accepts commit SHAs without failing lookups', async () => {
+    getExecOutputMock.mockResolvedValueOnce({ exitCode: 1, stdout: '', stderr: '' })
+    getExecOutputMock.mockResolvedValueOnce({ exitCode: 1, stdout: '', stderr: '' })
+    getExecOutputMock.mockResolvedValueOnce({ exitCode: 0, stdout: 'abcdef\n', stderr: '' })
+
+    const ref = await git.getLocalRef('abcdef')
+
+    expect(ref).toBe('abcdef')
+    expect(getExecOutputMock).toHaveBeenNthCalledWith(1, 'git', ['show-ref', '--verify', '-q', 'refs/heads/abcdef'], {
+      ignoreReturnCode: true,
+    })
+    expect(getExecOutputMock).toHaveBeenNthCalledWith(2, 'git', ['show-ref', '--verify', '-q', 'refs/tags/abcdef'], {
+      ignoreReturnCode: true,
+    })
+    expect(getExecOutputMock).toHaveBeenNthCalledWith(3, 'git', ['rev-parse', '--verify', 'abcdef'], {
+      ignoreReturnCode: true,
+    })
+  })
+
   test('getChangeStatus throws on unknown status', () => {
     expect(() => git.getChangeStatus('X')).toThrow(/Unknown change status/)
   })

@@ -114,17 +114,21 @@ export function isGitSha(ref: string): boolean {
 }
 
 export async function getLocalRef(name: string): Promise<string | undefined> {
-  const refs = await getExecOutput('git', ['show-ref', '--verify', '-q', `refs/heads/${name}`])
+  const refs = await getExecOutput('git', ['show-ref', '--verify', '-q', `refs/heads/${name}`], {
+    ignoreReturnCode: true,
+  })
   if (refs.exitCode === 0) {
     return `refs/heads/${name}`
   }
 
-  const tags = await getExecOutput('git', ['show-ref', '--verify', '-q', `refs/tags/${name}`])
+  const tags = await getExecOutput('git', ['show-ref', '--verify', '-q', `refs/tags/${name}`], {
+    ignoreReturnCode: true,
+  })
   if (tags.exitCode === 0) {
     return `refs/tags/${name}`
   }
 
-  const shas = await getExecOutput('git', ['rev-parse', '--verify', name])
+  const shas = await getExecOutput('git', ['rev-parse', '--verify', name], { ignoreReturnCode: true })
   if (shas.exitCode === 0) {
     return shas.stdout.trim()
   }

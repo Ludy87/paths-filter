@@ -36,9 +36,7 @@ async function run(): Promise<void> {
     const listFiles = core.getInput('list-files', { required: false }).toLowerCase() || 'none'
     const writeToFiles = core.getInput('write-to-files', { required: false }) === 'true'
     const strictExcludesInput = core.getInput('strict-excludes', { required: false })
-    const strictExcludes = strictExcludesInput
-      ? strictExcludesInput.toLowerCase() === 'true'
-      : false
+    const strictExcludes = strictExcludesInput ? strictExcludesInput.toLowerCase() === 'true' : false
     const filesInput = core.getInput('files', { required: false }) // New: Custom files list
     const globalIgnore = core.getInput('global-ignore', { required: false }) // New: Global ignore file
     const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', { required: false })) || 10
