@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import * as jsyaml from 'js-yaml'
 import picomatch from 'picomatch'
+import * as core from '@actions/core'
 import { File, ChangeStatus } from './file'
 
 // Type definition of object we expect to load from YAML
@@ -28,6 +29,11 @@ interface FilterRuleItem {
   status?: ChangeStatus[] // Required change status of the matched files
   isMatch: (str: string) => boolean // Matches the filename
   negate?: boolean // When true, this rule excludes matching files
+}
+
+interface IgnorePattern {
+  matcher: (filename: string) => boolean
+  negated: boolean
 }
 
 /**
@@ -63,110 +69,115 @@ export enum PredicateQuantifier {
 export type FilterConfig = {
   readonly predicateQuantifier: PredicateQuantifier
   globalIgnore?: string // Path to global ignore file
+  strictExcludes?: boolean // New: If true, any match against exclude patterns disables the entire filter
 }
 
 /**
- * An array of strings (at runtime) that contains the valid/accepted values for
- * the configuration parameter 'predicate-quantifier'.
+ * An array of all supported predicate quantifiers.
  */
 export const SUPPORTED_PREDICATE_QUANTIFIERS = Object.values(PredicateQuantifier)
 
-export function isPredicateQuantifier(x: unknown): x is PredicateQuantifier {
-  return SUPPORTED_PREDICATE_QUANTIFIERS.includes(x as PredicateQuantifier)
+/**
+ * Check if value is one of supported predicate quantifiers.
+ */
+export function isPredicateQuantifier(value: string): value is PredicateQuantifier {
+  return SUPPORTED_PREDICATE_QUANTIFIERS.includes(value as PredicateQuantifier)
 }
 
-export interface FilterResults {
-  [key: string]: File[]
-}
-
+/**
+ * The Filter class is responsible for parsing the YAML configuration and matching
+ * files against the defined rules. It supports complex filtering logic including
+ * status-based matching, negation, and global ignores.
+ */
 export class Filter {
-  rules: { [key: string]: FilterRuleItem[] } = {}
-  private globalIgnorePatterns: ((str: string) => boolean)[] = [] // Cached global ignore matchers
+  private readonly rules: Map<string, FilterRuleItem[]> = new Map()
+  private readonly globalIgnorePatterns: IgnorePattern[] = []
+  private readonly filterConfig: FilterConfig
 
-  // Creates instance of Filter and load rules from YAML if it's provided
-  constructor(
-    yaml?: string,
-    readonly filterConfig?: FilterConfig,
-  ) {
-    if (yaml) {
-      this.load(yaml)
-    }
-    // Load global ignores if provided
-    if (this.filterConfig?.globalIgnore) {
-      this.loadGlobalIgnores(this.filterConfig.globalIgnore)
-    }
-  }
-
-  // Load rules from YAML string
-  load(yaml: string): void {
-    if (!yaml) {
-      return
+  constructor(yaml: string, filterConfig: FilterConfig) {
+    this.filterConfig = filterConfig
+    const parsed = jsyaml.load(yaml) as FilterYaml
+    if (typeof parsed !== 'object' || parsed === null) {
+      throw new Error('Invalid filter YAML format: Expected object')
     }
 
-    const doc = jsyaml.load(yaml) as FilterYaml
-    if (typeof doc !== 'object') {
-      this.throwInvalidFormatError('Root element is not an object')
-    }
-
-    for (const [key, item] of Object.entries(doc)) {
-      this.rules[key] = this.parseFilterItemYaml(item)
-    }
-  }
-
-  // Load global ignore patterns from file
-  private loadGlobalIgnores(globalIgnorePath: string): void {
-    try {
-      const ignoreContent = fs.readFileSync(globalIgnorePath, 'utf8')
-      const patterns = ignoreContent
+    // Load global ignore patterns if path provided
+    if (filterConfig.globalIgnore) {
+      const globalIgnoreContent = fs.readFileSync(filterConfig.globalIgnore, 'utf8')
+      const globalIgnores = globalIgnoreContent
         .split(/\r?\n/)
-        .map((p) => p.trim())
-        .filter((p) => p.length > 0 && !p.startsWith('#'))
-      // Fixed: No 'negate: true' in options – invert logic in match() instead
-      this.globalIgnorePatterns = patterns.map((pattern) => picomatch(pattern, MatchOptions))
-    } catch (error) {
-      // Fixed: Extract message first to satisfy ESLint (unknown -> string)
-      const errorMsg = String(error)
-      throw new Error(`Failed to load global-ignore file '${globalIgnorePath}': ${errorMsg}`)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0 && !line.startsWith('#'))
+      this.globalIgnorePatterns = globalIgnores.map((pattern) => {
+        const negated = pattern.startsWith('!')
+        const pat = negated ? pattern.slice(1) : pattern
+        return { matcher: picomatch(pat, MatchOptions), negated }
+      })
+    }
+
+    // Parse each filter rule
+    for (const [key, item] of Object.entries(parsed)) {
+      this.rules.set(key, this.parseFilterItemYaml(item))
     }
   }
 
+  /**
+   * Matches the provided files against the filter rules and returns results
+   * grouped by filter key.
+   */
   match(files: File[]): FilterResults {
-    // Apply global ignores first (invert match for exclusion)
-    const filteredFiles =
-      this.globalIgnorePatterns.length > 0
-        ? files.filter((file) => !this.globalIgnorePatterns.some((isMatch) => isMatch(file.filename)))
-        : files
+    const results: FilterResults = {}
 
-    const result: FilterResults = {}
-    for (const [key, patterns] of Object.entries(this.rules)) {
-      result[key] = filteredFiles.filter((file) => this.isMatch(file, patterns))
+    // Apply global ignores first
+    let filteredFiles = files.filter(
+      (file) => !this.globalIgnorePatterns.some((ignore) => ignore.matcher(file.filename) && !ignore.negated),
+    )
+
+    // New: Strict excludes check - if enabled, check if any file matches a negative pattern across all rules
+    if (this.filterConfig.strictExcludes) {
+      const allNegativePatterns = Array.from(this.rules.values())
+        .flat()
+        .filter((rule) => rule.negate)
+        .map((rule) => rule.isMatch)
+
+      const hasExcludedFile = filteredFiles.some((file) =>
+        allNegativePatterns.some((negPattern) => negPattern(file.filename)),
+      )
+      if (hasExcludedFile) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        ;(core.warning as any)(
+          'Strict excludes triggered: At least one changed file matches an exclude pattern across filters. No files will be processed for this filter set.',
+        )
+        filteredFiles = []
+      }
     }
-    return result
+
+    for (const [key, rules] of this.rules) {
+      const matchingFiles: File[] = []
+      for (const file of filteredFiles) {
+        if (this.isMatch(file, rules)) {
+          matchingFiles.push(file)
+        }
+      }
+      results[key] = matchingFiles
+    }
+
+    return results
   }
 
-  private isMatch(file: File, patterns: FilterRuleItem[]): boolean {
-    const filePaths = Array.from(
-      new Set(
-        [file.filename, file.from, file.to, file.previous_filename].filter(
-          (path): path is string => typeof path === 'string' && path.length > 0,
-        ),
-      ),
-    )
-    const aPredicate = (rule: Readonly<FilterRuleItem>): boolean => {
-      return (
-        (rule.status === undefined || rule.status.includes(file.status)) && filePaths.some((path) => rule.isMatch(path))
-      )
-    }
+  private isMatch(file: File, rules: FilterRuleItem[]): boolean {
+    const positives = rules.filter((r) => !r.negate)
+    const negatives = rules.filter((r) => r.negate)
 
-    const positives = patterns.filter((p) => !p.negate)
-    const negatives = patterns.filter((p) => p.negate)
+    const aPredicate = (rule: FilterRuleItem): boolean => {
+      const statusMatch = !rule.status || rule.status.includes(file.status)
+      return statusMatch && rule.isMatch(file.filename)
+    }
 
     const positiveMatch =
-      positives.length === 0
-        ? true
-        : this.filterConfig?.predicateQuantifier === PredicateQuantifier.EVERY
-          ? positives.every(aPredicate)
-          : positives.some(aPredicate)
+      this.filterConfig.predicateQuantifier === PredicateQuantifier.EVERY
+        ? positives.every(aPredicate)
+        : positives.some(aPredicate)
 
     const negativeMatch = negatives.some(aPredicate)
 
@@ -229,4 +240,12 @@ export class Filter {
   private throwInvalidFormatError(message: string): never {
     throw new Error(`Invalid filter YAML format: ${message}.`)
   }
+}
+
+/**
+ * The result of matching files against filters. Each key corresponds to a filter
+ * name from the YAML, and the value is an array of matching File objects.
+ */
+export interface FilterResults {
+  [key: string]: File[]
 }

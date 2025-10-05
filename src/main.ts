@@ -4,7 +4,7 @@ import * as os from 'os'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { GetResponseDataTypeFromEndpointMethod } from '@octokit/types'
-import { PushEvent, PullRequestEvent, MergeGroupEvent } from '@octokit/webhooks-types'
+import { PushEvent, PullRequest, MergeGroupEvent, PullRequestEvent, ReleaseEvent } from '@octokit/webhooks-types'
 
 import {
   isPredicateQuantifier,
@@ -121,7 +121,7 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
     if (base) {
       core.notice(`'base' input parameter is ignored when action is triggered by pull request event`)
     }
-    const pr = github.context.payload.pull_request as PullRequestEvent
+    const pr = github.context.payload.pull_request as PullRequest
     if (token) {
       return await getChangedFilesFromApi(token, pr)
     }
@@ -141,7 +141,7 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
   }
 
   if (github.context.eventName === 'release') {
-    const releasePayload = github.context.payload as any
+    const releasePayload = github.context.payload as ReleaseEvent
     const currentTag = releasePayload.release?.tag_name
     if (currentTag) {
       if (!ref) {
@@ -227,7 +227,7 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
 }
 
 // Uses github REST api to get list of files changed in PR
-async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEvent): Promise<File[]> {
+async function getChangedFilesFromApi(token: string, pullRequest: PullRequest): Promise<File[]> {
   core.startGroup(`Fetching list of changed files for PR#${pullRequest.number} from GitHub API`)
   try {
     const client = github.getOctokit(token)
