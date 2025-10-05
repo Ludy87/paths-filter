@@ -99,6 +99,7 @@ export class Filter {
   private readonly filterConfig: FilterConfig
 
   constructor(yaml: string, filterConfig?: FilterConfig) {
+    core.info(`yaml: ${yaml} filterConfig: ${JSON.stringify(filterConfig)}`)
     this.filterConfig = filterConfig ? { ...DEFAULT_FILTER_CONFIG, ...filterConfig } : { ...DEFAULT_FILTER_CONFIG }
     const parsed = jsyaml.load(yaml) as FilterYaml
     if (typeof parsed !== 'object' || parsed === null) {
