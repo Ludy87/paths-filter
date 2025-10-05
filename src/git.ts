@@ -55,6 +55,7 @@ export async function getChangesOnHead(): Promise<File[]> {
   try {
     // output = (await getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', 'HEAD'])).stdout
     output = (await getExecOutput('git', ['diff', '--name-status', '--find-copies-harder', '-z', '-M', 'HEAD'])).stdout
+    core.info(`Including changes in index (staged) ${output}`)
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
