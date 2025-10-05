@@ -4,7 +4,7 @@ import * as os from 'os'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { GetResponseDataTypeFromEndpointMethod } from '@octokit/types'
-import { PushEvent, PullRequestEvent } from '@octokit/webhooks-types'
+import { PushEvent, PullRequestEvent, MergeGroupEvent } from '@octokit/webhooks-types'
 
 import {
   isPredicateQuantifier,
@@ -116,7 +116,7 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
   const prEvents = ['pull_request', 'pull_request_review', 'pull_request_review_comment', 'pull_request_target']
   if (prEvents.includes(github.context.eventName)) {
     if (ref) {
-      core.notice(`'ref' input parameter is ignored when 'base' is set to HEAD`)
+      core.notice(`'ref' input parameter is ignored when action is triggered by pull request event`)
     }
     if (base) {
       core.notice(`'base' input parameter is ignored when action is triggered by pull request event`)
@@ -138,9 +138,23 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
     const currentRef = await git.getCurrentRef()
     const safeBase = typeof baseSha === 'string' ? baseSha : typeof defaultBranch === 'string' ? defaultBranch : ''
     return await git.getChanges(base || safeBase, currentRef)
-  } else {
-    return getChangedFilesFromGit(base, ref, initialFetchDepth)
   }
+
+  if (github.context.eventName === 'merge_group') {
+    // To keep backward compatibility, manual inputs take precedence over
+    // commits in GitHub merge queue event.
+    const mergeGroup = github.context.payload as MergeGroupEvent
+    if (!base && mergeGroup.merge_group?.base_sha) {
+      base = mergeGroup.merge_group.base_sha
+      core.info(`Using base_sha from merge_group event: ${base}`)
+    }
+    if (!ref && mergeGroup.merge_group?.head_sha) {
+      ref = mergeGroup.merge_group.head_sha
+      core.info(`Using head_sha from merge_group event: ${ref}`)
+    }
+  }
+
+  return getChangedFilesFromGit(base, ref, initialFetchDepth)
 }
 
 async function getChangedFilesFromGit(base: string, head: string, initialFetchDepth: number): Promise<File[]> {
@@ -172,35 +186,18 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
   // If base is commit SHA we will do comparison against the referenced commit
   // Or if base references same branch it was pushed to, we will do comparison against the previously pushed commit
   if (isBaseSha || isBaseSameAsHead) {
-    const baseSha = isBaseSha ? base : beforeSha
-    if (!baseSha) {
-      core.warning(`'before' field is missing in event payload - changes will be detected from last commit`)
-      if (head !== currentRef) {
-        core.warning(`Ref ${head} is not checked out - results might be incorrect!`)
-      }
-      return await git.getChangesInLastCommit()
-    }
-
-    // If there is no previously pushed commit,
-    // we will do comparison against the default branch or return all as added
-    if (baseSha === git.NULL_SHA) {
-      if (defaultBranch && base !== defaultBranch) {
-        core.info(
-          `First push of a branch detected - changes will be detected against the default branch ${defaultBranch}`,
-        )
-        if (typeof defaultBranch !== 'string') {
-          throw new Error('Default branch is not defined or is not a string')
-        }
-        return await git.getChangesSinceMergeBase(defaultBranch, head, initialFetchDepth)
-      } else {
-        core.info('Initial push detected - all files will be listed as added')
-        if (head !== currentRef) {
-          core.warning(`Ref ${head} is not checked out - results might be incorrect!`)
-        }
-        return await git.listAllFilesAsAdded()
+    let baseSha: string
+    if (isBaseSha) {
+      baseSha = base
+    } else {
+      baseSha = beforeSha ?? ''
+      if (baseSha === null || baseSha === '') {
+        core.warning(`'before' field is missing or null in event payload - falling back to merge base comparison`)
+        // Then use merge-base instead of throwing an error
+        core.info(`Changes will be detected between ${base} and ${head}`)
+        return await git.getChangesSinceMergeBase(base, head, initialFetchDepth)
       }
     }
-
     core.info(`Changes will be detected between ${baseSha} and ${head}`)
     return await git.getChanges(baseSha, head)
   }

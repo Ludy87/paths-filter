@@ -4,8 +4,8 @@
     "lib": [
       "ES2023"
     ],
-    "module": "CommonJS",
-    "moduleResolution": "node10",
+    "module": "Node16",
+    "moduleResolution": "node16",
     "outDir": "./lib",
     "rootDir": "./src",
     "resolveJsonModule": true,
