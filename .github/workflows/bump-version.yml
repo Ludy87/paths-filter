@@ -5,8 +5,12 @@ on:
     inputs:
       release:
         description: "Version increment (patch, minor, major or explicit version)"
-        required: false
-        default: patch
+        required: true
+        type: choice
+        options:
+        - patch
+        - minor
+        - major
 
 permissions:
   contents: write
