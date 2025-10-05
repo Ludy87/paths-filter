@@ -55,7 +55,6 @@ export async function getChangesOnHead(): Promise<File[]> {
   try {
     // output = (await getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', 'HEAD'])).stdout
     output = (await getExecOutput('git', ['diff', '--name-status', '--find-copies-harder', '-z', '-M', 'HEAD'])).stdout
-    core.info(`Including changes in index (staged) ${output}`)
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -284,6 +283,7 @@ export function parseGitDiffOutput(output: string): File[] {
     }
 
     const statusCode = statusToken.charAt(0)
+    core.info(`Status code: ${statusCode}`)
     const similarityText = statusToken.slice(1)
     const similarity = similarityText ? Number.parseInt(similarityText, 10) : undefined
 
