@@ -3,9 +3,14 @@ repos:
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
+        exclude: ^docs/.*|^dist/.*$|.*\.md$
       - id: end-of-file-fixer
+        exclude: ^docs/.*|^dist/.*$|.*\.md$
       - id: check-yaml
+        exclude: ^docs/.*|^dist/.*$|.*\.md$
       - id: check-added-large-files
+        exclude: ^docs/.*|^dist/.*$|.*\.md$
+        args: ['--maxkb=500']
   - repo: local
     hooks:
       - id: npm-format-check
@@ -13,14 +18,17 @@ repos:
         entry: npm run format-check
         language: system
         pass_filenames: false
+        exclude: ^dist/.*$
       - id: npm-lint
         name: Run eslint on source files
         entry: npm run lint
         language: system
         pass_filenames: false
+        exclude: ^dist/.*$
       - id: npm-test
         name: Run unit tests
         entry: npm test -- --runInBand
         language: system
         pass_filenames: false
+        exclude: ^dist/.*$
         stages: [pre-push]

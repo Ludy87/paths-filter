@@ -1,10 +1,12 @@
-import { Filter, FilterConfig, PredicateQuantifier } from '../src/filter'
+import * as path from 'path'
 import { File, ChangeStatus } from '../src/file'
+import { createFilter } from './helpers'
+import { PredicateQuantifier } from '../src/filter'
 
 describe('yaml filter parsing tests', () => {
   test('throws if yaml is not a dictionary', () => {
     const yaml = 'not a dictionary'
-    const t = () => new Filter(yaml)
+    const t = () => createFilter(yaml)
     expect(t).toThrow(/^Invalid filter.*/)
   })
   test('throws if pattern is not a string', () => {
@@ -14,7 +16,7 @@ describe('yaml filter parsing tests', () => {
       - dict:
           some: value
     `
-    const t = () => new Filter(yaml)
+    const t = () => createFilter(yaml)
     expect(t).toThrow(/^Invalid filter.*/)
   })
 })
@@ -24,7 +26,7 @@ describe('matching tests', () => {
     const yaml = `
     src: "src/**/*.js"
     `
-    let filter = new Filter(yaml)
+    let filter = createFilter(yaml)
     const files = modified(['src/app/module/file.js'])
     const match = filter.match(files)
     expect(match.src).toEqual(files)
@@ -34,7 +36,7 @@ describe('matching tests', () => {
     src:
       - src/**/*.js
     `
-    const filter = new Filter(yaml)
+    const filter = createFilter(yaml)
     const files = modified(['src/app/module/file.js'])
     const match = filter.match(files)
     expect(match.src).toEqual(files)
@@ -45,7 +47,7 @@ describe('matching tests', () => {
     src:
       - src/**/*.js
     `
-    const filter = new Filter(yaml)
+    const filter = createFilter(yaml)
     const match = filter.match(modified(['not_src/other_file.js']))
     expect(match.src).toEqual([])
   })
@@ -57,7 +59,7 @@ describe('matching tests', () => {
     test:
       - test/**/*.js
     `
-    const filter = new Filter(yaml)
+    const filter = createFilter(yaml)
     const files = modified(['test/test.js'])
     const match = filter.match(files)
     expect(match.src).toEqual([])
@@ -70,7 +72,7 @@ describe('matching tests', () => {
       - src/**/*.js
       - test/**/*.js
     `
-    const filter = new Filter(yaml)
+    const filter = createFilter(yaml)
     const files = modified(['test/test.js'])
     const match = filter.match(files)
     expect(match.src).toEqual(files)
@@ -81,7 +83,7 @@ describe('matching tests', () => {
     any:
       - "**"
     `
-    const filter = new Filter(yaml)
+    const filter = createFilter(yaml)
     const files = modified(['test/test.js'])
     const match = filter.match(files)
     expect(match.any).toEqual(files)
@@ -92,7 +94,7 @@ describe('matching tests', () => {
     dot:
       - "**/*.js"
     `
-    const filter = new Filter(yaml)
+    const filter = createFilter(yaml)
     const files = modified(['.test/.test.js'])
     const match = filter.match(files)
     expect(match.dot).toEqual(files)
@@ -104,7 +106,7 @@ describe('matching tests', () => {
       - src/backend/**
       - '!src/frontend/**'
     `
-    const filter = new Filter(yaml)
+    const filter = createFilter(yaml)
     const files = modified(['vitest.setup.ts'])
     const match = filter.match(files)
     expect(match.backend).toEqual([])
@@ -122,7 +124,7 @@ describe('matching tests', () => {
       - 'docker/**'
       - '!src/frontend/**'
     `
-    const filter = new Filter(yaml)
+    const filter = createFilter(yaml)
     const files = modified(['vitest.setup.ts'])
     const match = filter.match(files)
     expect(match.backend).toEqual([])
@@ -134,19 +136,53 @@ describe('matching tests', () => {
       - '**/*'
       - '!src/frontend/**'
     `
-    const filter = new Filter(yaml)
+    const filter = createFilter(yaml)
     const backendFile = modified(['src/backend/main.ts'])
     const frontendFile = modified(['src/frontend/main.ts'])
     expect(filter.match(backendFile).backend).toEqual(backendFile)
     expect(filter.match(frontendFile).backend).toEqual([])
   })
 
+  test('global ignore patterns remove matching files before rule evaluation', () => {
+    const yaml = `
+    app:
+      - '**/*.ts'
+    `
+    const globalIgnorePath = path.join(__dirname, 'fixtures', 'global-ignore.txt')
+    const filter = createFilter(yaml, { globalIgnore: globalIgnorePath })
+
+    const files = modified(['src/index.ts', 'ignored/app.ts'])
+    const match = filter.match(files)
+
+    expect(match.app).toEqual(modified(['src/index.ts']))
+  })
+
+  test('strict excludes drop all files when an excluded pattern matches', () => {
+    const yaml = `
+    app:
+      - '**/*.ts'
+      - '!src/frontend/**'
+    `
+    const filter = createFilter(yaml, { strictExcludes: true })
+
+    const files = modified(['src/backend/main.ts', 'src/frontend/main.ts'])
+    const match = filter.match(files)
+
+    expect(match.app).toEqual([])
+
+    const backendOnlyMatch = filter.match(modified(['src/backend/main.ts']))
+    expect(backendOnlyMatch.app).toEqual(modified(['src/backend/main.ts']))
+  })
+
   test('matches all except tsx and less files (negate a group with or-ed parts)', () => {
     const yaml = `
     backend:
       - '!(**/*.tsx|**/*.less)'
+      - '**/*'
+      - '!**/*.tsx'
+      - '!**/*.less'
     `
-    const filter = new Filter(yaml)
+    const filter = createFilter(yaml)
     const tsxFiles = modified(['src/ui.tsx'])
     const lessFiles = modified(['src/ui.less'])
     const pyFiles = modified(['src/server.py'])
@@ -167,8 +203,7 @@ describe('matching tests', () => {
       - '!**/*.jpeg'
       - '!**/*.md'
     `
-    const filterConfig: FilterConfig = { predicateQuantifier: PredicateQuantifier.EVERY }
-    const filter = new Filter(yaml, filterConfig)
+    const filter = createFilter(yaml, { predicateQuantifier: PredicateQuantifier.EVERY })
 
     const typescriptFiles = modified(['pkg/a/b/c/some-class.ts', 'pkg/a/b/c/src/main/some-class.ts'])
     const otherPkgTypescriptFiles = modified(['pkg/x/y/z/some-class.ts', 'pkg/x/y/z/src/main/some-class.ts'])
@@ -196,7 +231,7 @@ describe('matching tests', () => {
     rename:
       - renamed: 'pkg/renamed/**'
     `
-    const filter = new Filter(yaml)
+    const filter = createFilter(yaml)
     const files = [
       {
         filename: 'pkg/renamed/file.ts',
@@ -210,14 +245,33 @@ describe('matching tests', () => {
     expect(match.rename).toEqual(files)
   })
 
-  test('matches copied files using both source and destination paths', () => {
+  test('matches renamed files using their original path when rule targets rename status', () => {
+    const yaml = `
+    docs:
+      - renamed: 'README.md'
+    `
+    const filter = createFilter(yaml)
+    const files = [
+      {
+        filename: 'README_RENAMED.md',
+        status: ChangeStatus.Renamed,
+        from: 'README.md',
+        to: 'README_RENAMED.md',
+      },
+    ]
+
+    const match = filter.match(files)
+    expect(match.docs).toEqual(files)
+  })
+
+  test('matches copied files using their destination path', () => {
     const yaml = `
     copyDestination:
       - copied: 'pkg/**/*'
     copySource:
       - copied: 'lib/**/*'
     `
-    const filter = new Filter(yaml)
+    const filter = createFilter(yaml)
     const files = [
       {
         filename: 'pkg/utils/file.ts',
@@ -229,16 +283,16 @@ describe('matching tests', () => {
 
     const match = filter.match(files)
     expect(match.copyDestination).toEqual(files)
-    expect(match.copySource).toEqual(files)
+    expect(match.copySource).toEqual([])
   })
 
-  test('negated status rules apply to every known path variant', () => {
+  test('negated status rules evaluate only destination paths for renamed files', () => {
     const yaml = `
     rename:
       - renamed: '**/*.ts'
       - renamed: '!legacy/**'
     `
-    const filter = new Filter(yaml)
+    const filter = createFilter(yaml)
     const files = [
       {
         filename: 'pkg/renamed/file.ts',
@@ -249,7 +303,7 @@ describe('matching tests', () => {
     ]
 
     const match = filter.match(files)
-    expect(match.rename).toEqual([])
+    expect(match.rename).toEqual(files)
   })
 
   test('matches path based on rules included using YAML anchor', () => {
@@ -261,7 +315,7 @@ describe('matching tests', () => {
       - *shared
       - src/**/*
     `
-    const filter = new Filter(yaml)
+    const filter = createFilter(yaml)
     const files = modified(['config/settings.yml'])
     const match = filter.match(files)
     expect(match.src).toEqual(files)
@@ -274,7 +328,7 @@ describe('matching specific change status', () => {
     add:
       - added: "**/*"
     `
-    let filter = new Filter(yaml)
+    let filter = createFilter(yaml)
     const match = filter.match(modified(['file.js']))
     expect(match.add).toEqual([])
   })
@@ -284,7 +338,7 @@ describe('matching specific change status', () => {
     add:
       - added: "**/*"
     `
-    let filter = new Filter(yaml)
+    let filter = createFilter(yaml)
     const files = [{ status: ChangeStatus.Added, filename: 'file.js', from: 'file.js' }]
     const match = filter.match(files)
     expect(match.add).toEqual(files)
@@ -295,7 +349,7 @@ describe('matching specific change status', () => {
     addOrModify:
       - added|modified: "**/*"
     `
-    let filter = new Filter(yaml)
+    let filter = createFilter(yaml)
     const files = [{ status: ChangeStatus.Modified, filename: 'file.js', from: 'file.js' }]
     const match = filter.match(files)
     expect(match.addOrModify).toEqual(files)
@@ -307,7 +361,7 @@ describe('matching specific change status', () => {
       - renamed: "file.js"
       - "test.txt"
     `
-    let filter = new Filter(yaml)
+    let filter = createFilter(yaml)
     const files = [{ status: ChangeStatus.Renamed, filename: 'file.js', from: 'file.js' }]
     const match = filter.match(files)
     expect(match.rename).toEqual(files)
@@ -321,7 +375,7 @@ describe('matching specific change status', () => {
     src:
       - modified: *shared
     `
-    let filter = new Filter(yaml)
+    let filter = createFilter(yaml)
     const files = modified(['config/file', 'common/anotherFile.js'])
     const match = filter.match(files)
     expect(match.src).toEqual(files)

@@ -30,6 +30,8 @@ inputs:
         'csv'   - Comma separated list of filenames.
                   If needed it uses double quotes to wrap filename with unsafe characters.
         'json'  - Serialized as JSON array.
+        'json-detailed' - Serialized as JSON array containing full metadata for each file
+                          (status, source, targets, similarity when available).
         'shell' - Space delimited list usable as command line argument list in linux shell.
                   If needed it uses single or double quotes to wrap filename with unsafe characters.
         'escape' - Space delimited list usable as command line argument list in linux shell.
@@ -37,6 +39,13 @@ inputs:
         'lines' - Newline delimited list of files without any escaping.
     required: false
     default: 'none'
+  write-to-files:
+    description: |
+      When set to 'true', writes the list of matching files for each filter to a
+      temporary file and exposes its location through the `${FILTER_NAME}_files_path`
+      output. Requires `list-files` to be set to a format other than 'none'.
+    required: false
+    default: 'false'
   initial-fetch-depth:
     description: |
       How many commits are initially fetched from base branch.
@@ -63,6 +72,19 @@ inputs:
        - '!**/*.md'
     required: false
     default: 'some'
+  files:
+    description: 'Custom list of changed files (newline-separated). If provided, skips automatic change detection.'
+    required: false
+  global-ignore:
+    description: 'Path to a file containing global ignore patterns (one per line, like .gitignore).'
+    required: false
+  strict-excludes:
+    description: |-
+      When set to 'true', any changed file that matches an exclude pattern in any filter
+      prevents all filters from matching. A warning is emitted to highlight the excluded file.
+      Use this to treat negated patterns as hard stops for the entire filter set.
+    required: false
+    default: 'false'
 outputs:
   all_changed:
     description: Boolean value indicating if all of the filters contained at least one changed file. If no filters matched, this value is 'true'.

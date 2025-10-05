@@ -1,12 +1,14 @@
 import * as github from '@actions/github'
 import { getChangedFilesFromApi } from '../src/main'
 import { ChangeStatus } from '../src/file'
-import { PullRequestEvent } from '@octokit/webhooks-types'
+import { PullRequest, PullRequestEvent } from '@octokit/webhooks-types'
+import * as git from '../src/git'
 
 jest.mock('@actions/core', () => ({
   info: jest.fn(),
   startGroup: jest.fn(),
   endGroup: jest.fn(),
+  warning: jest.fn(),
 }))
 
 jest.mock('@actions/github', () => ({
@@ -14,7 +16,15 @@ jest.mock('@actions/github', () => ({
   getOctokit: jest.fn(),
 }))
 
+jest.mock('../src/git', () => ({
+  getChanges: jest.fn(),
+}))
+
 describe('getChangedFilesFromApi', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
   test('handles copied status', async () => {
     // For "copied", GitHub sets filename to the destination and previous_filename to the source
     const mockResponse = {
@@ -46,9 +56,13 @@ describe('getChangedFilesFromApi', () => {
 
     ;(github.getOctokit as jest.Mock).mockReturnValue(mockClient)
 
-    const pr = { number: 1 } as unknown as PullRequestEvent
+    const pr = {
+      number: 0,
+      base: { sha: 'base-sha' },
+      head: { sha: 'head-sha' },
+    } as unknown as PullRequest
 
-    const files = await getChangedFilesFromApi('token', pr)
+    const files = await getChangedFilesFromApi('token', pr, 1)
 
     // Expect "from" to be set
     expect(files).toEqual([
@@ -73,7 +87,13 @@ describe('getChangedFilesFromApi', () => {
       rest: { pulls: { listFiles: { endpoint: { merge } } } },
     })
 
-    const files = await getChangedFilesFromApi('token', { number: 7 } as any)
+    const pr = {
+      number: 0,
+      base: { sha: 'base-sha' },
+      head: { sha: 'head-sha' },
+    } as unknown as PullRequest
+
+    const files = await getChangedFilesFromApi('token', pr, 1)
 
     // Renamed files return a single entry with both source and destination
     // Copied files retain their source path in "from"
@@ -86,8 +106,34 @@ describe('getChangedFilesFromApi', () => {
     expect(merge).toHaveBeenCalledWith({
       owner: 'owner',
       repo: 'repo',
-      pull_number: 7,
+      pull_number: 0,
       per_page: 100,
     })
+  })
+
+  test('falls back to git diff when PR number is positive', async () => {
+    const iterator = jest.fn().mockImplementation(async function* () {
+      yield { status: 200, data: [] }
+    })
+    const merge = jest.fn().mockReturnValue({})
+    ;(github.getOctokit as jest.Mock).mockReturnValue({
+      paginate: { iterator },
+      rest: { pulls: { listFiles: { endpoint: { merge } } } },
+    })
+
+    const pr = {
+      number: 42,
+      base: { sha: 'base-sha' },
+      head: { sha: 'head-sha' },
+    } as unknown as PullRequest
+
+    const gitResult = [{ filename: 'fallback.ts', status: ChangeStatus.Modified, from: 'fallback.ts' }]
+    const getChangesMock = git.getChanges as jest.MockedFunction<typeof git.getChanges>
+    getChangesMock.mockResolvedValue(gitResult)
+
+    const files = await getChangedFilesFromApi('token', pr, 1)
+
+    expect(getChangesMock).toHaveBeenCalledWith('base-sha', 'head-sha', 1)
+    expect(files).toEqual(gitResult)
   })
 })

@@ -19,7 +19,7 @@ describe('all_changed and any_changed outputs', () => {
       src: [{ filename: 'src/file.ts', status: ChangeStatus.Modified, from: 'src/file.ts' }],
       docs: [{ filename: 'docs/readme.md', status: ChangeStatus.Added, from: 'docs/readme.md' }],
     }
-    exportResults(results, 'none')
+    exportResults(results, 'none', false)
     expect(core.setOutput).toHaveBeenCalledWith('all_changed', true)
     expect(core.setOutput).toHaveBeenCalledWith('any_changed', true)
   })
@@ -29,7 +29,7 @@ describe('all_changed and any_changed outputs', () => {
       src: [{ filename: 'src/file.ts', status: ChangeStatus.Modified, from: 'src/file.ts' }],
       docs: [],
     }
-    exportResults(results, 'none')
+    exportResults(results, 'none', false)
     expect(core.setOutput).toHaveBeenCalledWith('all_changed', false)
     expect(core.setOutput).toHaveBeenCalledWith('any_changed', true)
   })
@@ -39,8 +39,22 @@ describe('all_changed and any_changed outputs', () => {
       src: [],
       docs: [],
     }
-    exportResults(results, 'none')
+    exportResults(results, 'none', false)
     expect(core.setOutput).toHaveBeenCalledWith('all_changed', false)
     expect(core.setOutput).toHaveBeenCalledWith('any_changed', false)
   })
+})
+
+test('does not create file paths when writeToFiles is enabled but no files match', () => {
+  const results = {
+    src: [],
+  }
+
+  exportResults(results, 'json', true)
+
+  const setOutputMock = core.setOutput as jest.MockedFunction<typeof core.setOutput>
+  const pathOutputCalls = setOutputMock.mock.calls.filter(([name]) => name.endsWith('_files_path'))
+
+  expect(pathOutputCalls).toHaveLength(0)
+  expect(core.setOutput).toHaveBeenCalledWith('src_files', '[]')
 })

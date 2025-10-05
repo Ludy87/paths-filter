@@ -19,9 +19,10 @@ export async function getChangesInLastCommit(): Promise<File[]> {
   return parseGitDiffOutput(output)
 }
 
-export async function getChanges(base: string, head: string): Promise<File[]> {
-  const baseRef = await ensureRefAvailable(base)
-  const headRef = await ensureRefAvailable(head)
+export async function getChanges(base: string, head: string, fetchDepth = 1): Promise<File[]> {
+  const depth = Number.isFinite(fetchDepth) && fetchDepth > 0 ? Math.floor(fetchDepth) : 1
+  const baseRef = await ensureRefAvailable(base, depth)
+  const headRef = await ensureRefAvailable(head, depth)
 
   // Get differences between ref and HEAD
   core.startGroup(`Change detection ${base}..${head}`)
@@ -62,79 +63,29 @@ export async function getChangesOnHead(): Promise<File[]> {
   return parseGitDiffOutput(output)
 }
 
-export async function getChangesSinceMergeBase(base: string, head: string, initialFetchDepth: number): Promise<File[]> {
-  let baseRef: string | undefined
-  let headRef: string | undefined
-  async function hasMergeBase(): Promise<boolean> {
-    if (baseRef === undefined || headRef === undefined) {
-      return false
-    }
-    return (await getExecOutput('git', ['merge-base', baseRef, headRef], { ignoreReturnCode: true })).exitCode === 0
-  }
-
-  let noMergeBase = false
-  core.startGroup(`Searching for merge-base ${base}...${head}`)
+export async function getChangesSinceMergeBase(
+  base: string,
+  head: string,
+  _initialFetchDepth: number,
+): Promise<File[]> {
+  core.startGroup(`Ensuring deep enough history for merge-base`)
   try {
-    baseRef = await getLocalRef(base)
-    headRef = await getLocalRef(head)
-    if (!(await hasMergeBase())) {
-      await getExecOutput('git', ['fetch', '--no-tags', `--depth=${initialFetchDepth}`, 'origin', base, head])
-      if (baseRef === undefined || headRef === undefined) {
-        baseRef = baseRef ?? (await getLocalRef(base))
-        headRef = headRef ?? (await getLocalRef(head))
-        if (baseRef === undefined || headRef === undefined) {
-          await getExecOutput('git', ['fetch', '--tags', '--depth=1', 'origin', base, head], {
-            ignoreReturnCode: true, // returns exit code 1 if tags on remote were updated - we can safely ignore it
-          })
-          baseRef = baseRef ?? (await getLocalRef(base))
-          headRef = headRef ?? (await getLocalRef(head))
-          if (baseRef === undefined) {
-            throw new Error(
-              `Could not determine what is ${base} - fetch works but it's not a branch, tag or commit SHA`,
-            )
-          }
-          if (headRef === undefined) {
-            throw new Error(
-              `Could not determine what is ${head} - fetch works but it's not a branch, tag or commit SHA`,
-            )
-          }
-        }
-      }
-
-      let depth = initialFetchDepth
-      let lastCommitCount = await getCommitCount()
-      while (!(await hasMergeBase())) {
-        depth = Math.min(depth * 2, Number.MAX_SAFE_INTEGER)
-        await getExecOutput('git', ['fetch', `--deepen=${depth}`, 'origin', base, head])
-        const commitCount = await getCommitCount()
-        if (commitCount === lastCommitCount) {
-          core.info('No more commits were fetched')
-          core.info('Last attempt will be to fetch full history')
-          await getExecOutput('git', ['fetch'])
-          if (!(await hasMergeBase())) {
-            noMergeBase = true
-          }
-          break
-        }
-        lastCommitCount = commitCount
-      }
-    }
+    await getExecOutput('git', ['fetch', '--unshallow'])
   } finally {
     core.endGroup()
   }
 
-  // Three dots '...' change detection - finds merge-base and compares against it
-  let diffArg = `${baseRef}...${headRef}`
-  if (noMergeBase) {
-    core.warning('No merge base found - change detection will use direct <commit>..<commit> comparison')
-    diffArg = `${baseRef}..${headRef}`
+  const mergeBase = (await getExecOutput('git', ['merge-base', base, head])).stdout.trim()
+  if (!mergeBase) {
+    throw new Error(`No merge base found between ${base} and ${head}`)
   }
 
-  // Get changes introduced on ref compared to base
-  core.startGroup(`Change detection ${diffArg}`)
+  core.startGroup(`Change detection ${base}..${head}`)
   let output = ''
   try {
-    output = (await getExecOutput('git', ['diff', '--no-renames', '--name-status', '-z', diffArg])).stdout
+    output = (
+      await getExecOutput('git', ['diff', '--name-status', '--find-copies-harder', '-z', '-M', `${mergeBase}..${head}`])
+    ).stdout
   } finally {
     fixStdOutNullTermination()
     core.endGroup()
@@ -143,139 +94,90 @@ export async function getChangesSinceMergeBase(base: string, head: string, initi
   return parseGitDiffOutput(output)
 }
 
-export function parseGitDiffOutput(output: string): File[] {
-  const tokens = output.split('\u0000').filter(Boolean)
-
-  const files: File[] = []
-  for (let i = 0; i < tokens.length; ) {
-    const code = tokens[i++] //  "M", "A", "D", "R100", "C75", "U"
-    const kind = code[0] as keyof typeof statusMap
-    const status = statusMap[kind] // mappt "R100" -> Renamed
-    const maybeSim = Number.parseInt(code.slice(1), 10)
-    const similarity = Number.isFinite(maybeSim) ? maybeSim : undefined
-    if (kind === 'R' || kind === 'C') {
-      const from = tokens[i++]
-      const to = tokens[i++]
-      if (to == null) {
-        core.warning(`Missing new filename for code "${code}"`)
-      }
-
-      if (to === undefined) {
-        core.warning(`Missing new filename for code "${code}"`)
-        continue
-      }
-      files.push({ status, filename: to, from, similarity })
-    } else {
-      const name = tokens[i++]
-      if (name === undefined) {
-        core.warning(`Missing filename for code "${code}"`)
-        continue
-      }
-      files.push({ status, filename: name, from: name })
-    }
-  }
-
-  return files
-}
-
-export async function listAllFilesAsAdded(): Promise<File[]> {
-  core.startGroup('Listing all files tracked by git')
-  let output = ''
-  try {
-    output = (await getExecOutput('git', ['ls-files', '-z'])).stdout
-  } finally {
-    fixStdOutNullTermination()
-    core.endGroup()
-  }
-
-  return output
-    .split('\u0000')
-    .filter((s) => s.length > 0)
-    .map((path) => ({
-      status: ChangeStatus.Added,
-      filename: path,
-      from: path,
-    }))
-}
-
 export async function getCurrentRef(): Promise<string> {
-  core.startGroup(`Get current git ref`)
-  try {
-    const branch = (await getExecOutput('git', ['branch', '--show-current'])).stdout.trim()
-    if (branch) {
-      return branch
-    }
-
-    const describe = await getExecOutput('git', ['describe', '--tags', '--exact-match'], { ignoreReturnCode: true })
-    if (describe.exitCode === 0) {
-      return describe.stdout.trim()
-    }
-
-    return (await getExecOutput('git', ['rev-parse', HEAD])).stdout.trim()
-  } finally {
-    core.endGroup()
+  const ref = (await getExecOutput('git', ['rev-parse', '--abbrev-ref', 'HEAD'])).stdout.trim()
+  if (ref === 'HEAD') {
+    return (await getExecOutput('git', ['rev-parse', 'HEAD'])).stdout.trim()
   }
-}
-
-export function getShortName(ref: string): string {
-  if (!ref) return ''
-
-  const heads = 'refs/heads/'
-  const tags = 'refs/tags/'
-
-  if (ref.startsWith(heads)) return ref.slice(heads.length)
-  if (ref.startsWith(tags)) return ref.slice(tags.length)
-
   return ref
 }
 
+export function getShortName(ref: string): string {
+  if (!ref) {
+    return ref
+  }
+  const match = ref.match(/refs\/(?:heads|tags|remotes\/[^/]+)\/(.+)/)
+  return match ? match[1] : ref
+}
+
 export function isGitSha(ref: string): boolean {
-  return /^[a-z0-9]{40}$/.test(ref)
+  return /^[0-9a-f]{40}$/.test(ref)
 }
 
 async function hasCommit(ref: string): Promise<boolean> {
   return (await getExecOutput('git', ['cat-file', '-e', `${ref}^{commit}`], { ignoreReturnCode: true })).exitCode === 0
 }
 
-async function getCommitCount(): Promise<number> {
-  const output = (await getExecOutput('git', ['rev-list', '--count', '--all'])).stdout
-  const count = parseInt(output)
-  return isNaN(count) ? 0 : count
+export async function getLocalRef(name: string): Promise<string | undefined> {
+  if (isGitSha(name)) {
+    return (await hasCommit(name)) ? name : undefined
+  }
+  const refs = await getExecOutput('git', ['show-ref', '--verify', '-q', `refs/heads/${name}`], {
+    ignoreReturnCode: true,
+  })
+  if (refs.exitCode === 0) {
+    return `refs/heads/${name}`
+  }
+
+  const tags = await getExecOutput('git', ['show-ref', '--verify', '-q', `refs/tags/${name}`], {
+    ignoreReturnCode: true,
+  })
+  if (tags.exitCode === 0) {
+    return `refs/tags/${name}`
+  }
+
+  const shas = await getExecOutput('git', ['rev-parse', '--verify', name], { ignoreReturnCode: true })
+  if (shas.exitCode === 0) {
+    return shas.stdout.trim()
+  }
+
+  const allRefs = await getExecOutput('git', ['for-each-ref', '--format=%(refname)', `refs/*/${name}`])
+  const match = allRefs.stdout.match(/^refs\/(.+?)\/${name}$/m)
+  if (match) {
+    return `refs/${match[1]}/${name}`
+  }
+
+  return undefined
 }
 
-async function getLocalRef(shortName: string): Promise<string | undefined> {
-  if (isGitSha(shortName)) {
-    return (await hasCommit(shortName)) ? shortName : undefined
+// New: Helper for release events to get previous tag
+export async function getPreviousTag(currentTag: string): Promise<string> {
+  core.startGroup(`Fetching tags for previous tag detection`)
+  try {
+    const tagsOutput = (await getExecOutput('git', ['tag', '--sort=-creatordate'])).stdout
+    const tags = tagsOutput.split('\n').filter(Boolean).slice(0, 2) // Top 2 tags
+    if (tags.length < 2) {
+      core.warning(`Insufficient tags found; using fallback base 'v0.0.0' for release diff`)
+      return 'v0.0.0'
+    }
+    const previousTag = tags[1]
+    core.info(`Previous tag to ${currentTag}: ${previousTag}`)
+    return previousTag
+  } finally {
+    core.endGroup()
   }
-
-  const output = (await getExecOutput('git', ['show-ref', shortName], { ignoreReturnCode: true })).stdout
-  const refs = output
-    .split(/\r?\n/g)
-    .map((l) => l.match(/refs\/(?:(?:heads)|(?:tags)|(?:remotes\/origin))\/(.*)$/))
-    .filter((match) => match !== null && match[1] === shortName)
-    .map((match) => match?.[0] ?? '') // match can't be null here but compiler doesn't understand that
-
-  if (refs.length === 0) {
-    return undefined
-  }
-
-  const remoteRef = refs.find((ref) => ref.startsWith('refs/remotes/origin/'))
-  if (remoteRef) {
-    return remoteRef
-  }
-
-  return refs[0]
 }
 
-async function ensureRefAvailable(name: string): Promise<string> {
+async function ensureRefAvailable(name: string, fetchDepth = 1): Promise<string> {
+  const depth = Number.isFinite(fetchDepth) && fetchDepth > 0 ? Math.floor(fetchDepth) : 1
   core.startGroup(`Ensuring ${name} is fetched from origin`)
   try {
     let ref = await getLocalRef(name)
     if (ref === undefined) {
-      await getExecOutput('git', ['fetch', '--depth=1', '--no-tags', 'origin', name])
+      await getExecOutput('git', ['fetch', `--depth=${depth}`, '--no-tags', 'origin', name])
       ref = await getLocalRef(name)
       if (ref === undefined) {
-        await getExecOutput('git', ['fetch', '--depth=1', '--tags', 'origin', name])
+        await getExecOutput('git', ['fetch', `--depth=${depth}`, '--tags', 'origin', name])
         ref = await getLocalRef(name)
         if (ref === undefined) {
           throw new Error(`Could not determine what is ${name} - fetch works but it's not a branch, tag or commit SHA`)
@@ -328,4 +230,113 @@ export function groupFilesByStatus(files: File[]): Record<ChangeStatus, File[]> 
   }
 
   return grouped
+}
+
+const parseNullTerminated = (output: string, startIndex: number): [string, number] => {
+  let i = startIndex
+  let value = ''
+  while (i < output.length && output.charAt(i) !== '\0') {
+    value += output.charAt(i)
+    i++
+  }
+  if (i < output.length && output.charAt(i) === '\0') {
+    i++
+  }
+  return [value, i]
+}
+
+export function parseGitDiffOutput(output: string): File[] {
+  const files: File[] = []
+  let index = 0
+  while (index < output.length) {
+    const [rawStatusToken, nextIndex] = parseNullTerminated(output, index)
+    index = nextIndex
+
+    if (!rawStatusToken) {
+      break
+    }
+
+    let statusToken = rawStatusToken
+    let inlineFirstPath: string | undefined
+    let inlineSecondPath: string | undefined
+
+    const firstSeparatorIndex = statusToken.search(/[\s\t]/)
+    if (firstSeparatorIndex !== -1) {
+      const inlinePathText = statusToken.slice(firstSeparatorIndex + 1)
+      statusToken = statusToken.slice(0, firstSeparatorIndex)
+
+      // Git can separate inline paths with either spaces or tabs depending on the flags used.
+      const tabSeparated = inlinePathText.split('\t')
+      if (tabSeparated.length > 1) {
+        ;[inlineFirstPath, inlineSecondPath] = tabSeparated
+      } else {
+        inlineFirstPath = inlinePathText
+      }
+
+      if (inlineSecondPath === undefined && inlineFirstPath !== undefined) {
+        const spaceIndex = inlineFirstPath.indexOf(' ')
+        if (spaceIndex !== -1) {
+          inlineSecondPath = inlineFirstPath.slice(spaceIndex + 1)
+          inlineFirstPath = inlineFirstPath.slice(0, spaceIndex)
+        }
+      }
+
+      if (inlineFirstPath !== undefined) {
+        inlineFirstPath = inlineFirstPath.trim()
+      }
+      if (inlineSecondPath !== undefined) {
+        inlineSecondPath = inlineSecondPath.trim()
+      }
+    }
+
+    const statusCode = statusToken.charAt(0)
+    const similarityText = statusToken.slice(1)
+    const similarity = similarityText ? Number.parseInt(similarityText, 10) : undefined
+
+    let firstPath: string | undefined
+    if (inlineFirstPath !== undefined) {
+      firstPath = inlineFirstPath
+    } else {
+      const [parsedFirstPath, afterFirstPath] = parseNullTerminated(output, index)
+      firstPath = parsedFirstPath
+      index = afterFirstPath
+    }
+
+    if (!firstPath) {
+      continue
+    }
+
+    const status = getChangeStatus(statusCode)
+
+    if (status === ChangeStatus.Copied || status === ChangeStatus.Renamed) {
+      let secondPath: string | undefined
+      if (inlineSecondPath !== undefined) {
+        secondPath = inlineSecondPath
+      } else {
+        const [parsedSecondPath, afterSecondPath] = parseNullTerminated(output, index)
+        secondPath = parsedSecondPath
+        index = afterSecondPath
+        core.info(`Parsed second path: ${secondPath} from output at index ${index}`)
+      }
+
+      const destination = secondPath || firstPath
+      const similarityScore = Number.isNaN(similarity) ? undefined : similarity
+
+      files.push({
+        filename: destination,
+        status,
+        from: firstPath,
+        to: destination,
+        ...(similarityScore !== undefined ? { similarity: similarityScore } : {}),
+      })
+    } else {
+      files.push({
+        filename: firstPath,
+        status,
+        from: firstPath,
+      })
+    }
+  }
+
+  return files
 }

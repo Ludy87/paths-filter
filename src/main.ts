@@ -1,8 +1,10 @@
 import * as fs from 'fs'
+import * as path from 'path'
+import * as os from 'os'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { GetResponseDataTypeFromEndpointMethod } from '@octokit/types'
-import { PushEvent, PullRequestEvent } from '@octokit/webhooks-types'
+import { PushEvent, PullRequest, MergeGroupEvent, PullRequestEvent, ReleaseEvent } from '@octokit/webhooks-types'
 
 import {
   isPredicateQuantifier,
@@ -17,7 +19,7 @@ import * as git from './git'
 import { backslashEscape, shellEscape } from './list-format/shell-escape'
 import { csvEscape } from './list-format/csv-escape'
 
-type ExportFormat = 'none' | 'csv' | 'json' | 'shell' | 'escape' | 'lines'
+type ExportFormat = 'none' | 'csv' | 'json' | 'json-detailed' | 'shell' | 'escape' | 'lines'
 
 async function run(): Promise<void> {
   try {
@@ -32,6 +34,11 @@ async function run(): Promise<void> {
     const filtersInput = core.getInput('filters', { required: true })
     const filtersYaml = isPathInput(filtersInput) ? getConfigFileContent(filtersInput) : filtersInput
     const listFiles = core.getInput('list-files', { required: false }).toLowerCase() || 'none'
+    const writeToFiles = core.getInput('write-to-files', { required: false }) === 'true'
+    const strictExcludesInput = core.getInput('strict-excludes', { required: false })
+    const strictExcludes = strictExcludesInput ? strictExcludesInput.toLowerCase() === 'true' : false
+    const filesInput = core.getInput('files', { required: false }) // New: Custom files list
+    const globalIgnore = core.getInput('global-ignore', { required: false }) // New: Global ignore file
     const initialFetchDepth = parseInt(core.getInput('initial-fetch-depth', { required: false })) || 10
     const predicateQuantifier = core.getInput('predicate-quantifier', { required: false }) || PredicateQuantifier.SOME
 
@@ -40,19 +47,47 @@ async function run(): Promise<void> {
       return
     }
 
+    if (writeToFiles && listFiles === 'none') {
+      core.warning('write-to-files is true, but list-files is "none". No file will be written.')
+    }
+
     if (!isPredicateQuantifier(predicateQuantifier)) {
       const predicateQuantifierInvalidErrorMsg =
         `Input parameter 'predicate-quantifier' is set to invalid value ` +
         `'${predicateQuantifier}'. Valid values: ${SUPPORTED_PREDICATE_QUANTIFIERS.join(', ')}`
       throw new Error(predicateQuantifierInvalidErrorMsg)
     }
-    const filterConfig: FilterConfig = { predicateQuantifier }
 
-    const filter = new Filter(filtersYaml, filterConfig)
-    const files = await getChangedFiles(token, base, ref, initialFetchDepth)
+    // Determine files: Use custom input if provided, else compute via Git/API
+    let files: File[]
+    if (filesInput) {
+      core.info(`Using custom files input (${filesInput.split('\n').filter(Boolean).length} files)`)
+      files = filesInput
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .map((filename) => ({
+          filename,
+          status: ChangeStatus.Modified, // Default status for custom files
+          from: filename,
+        }))
+    } else {
+      files = await getChangedFiles(token, base, ref, initialFetchDepth)
+    }
+
     core.info(`Detected ${files.length} changed files`)
+    for (const file of files) {
+      core.info(`File: ${file.filename}, Status: ${file.status}`)
+    }
+
+    const filterConfig: FilterConfig = {
+      predicateQuantifier,
+      globalIgnore: globalIgnore || undefined,
+      strictExcludes,
+    }
+    const filter = new Filter(filtersYaml, filterConfig)
     const results = filter.match(files)
-    exportResults(results, listFiles)
+    exportResults(results, listFiles, writeToFiles)
   } catch (error) {
     core.setFailed(getErrorMessage(error))
   }
@@ -87,14 +122,14 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
   const prEvents = ['pull_request', 'pull_request_review', 'pull_request_review_comment', 'pull_request_target']
   if (prEvents.includes(github.context.eventName)) {
     if (ref) {
-      core.notice(`'ref' input parameter is ignored when 'base' is set to HEAD`)
+      core.notice(`'ref' input parameter is ignored when action is triggered by pull request event`)
     }
     if (base) {
       core.notice(`'base' input parameter is ignored when action is triggered by pull request event`)
     }
-    const pr = github.context.payload.pull_request as PullRequestEvent
+    const pr = github.context.payload.pull_request as PullRequest
     if (token) {
-      return await getChangedFilesFromApi(token, pr)
+      return await getChangedFilesFromApi(token, pr, initialFetchDepth)
     }
     if (github.context.eventName === 'pull_request_target') {
       // pull_request_target is executed in context of base branch and GITHUB_SHA points to last commit in base branch
@@ -102,23 +137,58 @@ async function getChangedFiles(token: string, base: string, ref: string, initial
       // At the same time we don't want to fetch any code from forked repository
       throw new Error(`'token' input parameter is required if action is triggered by 'pull_request_target' event`)
     }
-    core.info('Github token is not available - changes will be detected using git diff')
+    core.info('GitHub token is not available - changes will be detected using git diff')
     const baseSha = (github.context.payload as PullRequestEvent).pull_request?.base.sha
     const defaultBranch: string | undefined = (github.context.payload.repository as { default_branch?: string })
       ?.default_branch
     const currentRef = await git.getCurrentRef()
     const safeBase = typeof baseSha === 'string' ? baseSha : typeof defaultBranch === 'string' ? defaultBranch : ''
-    return await git.getChanges(base || safeBase, currentRef)
-  } else {
-    return getChangedFilesFromGit(base, ref, initialFetchDepth)
+    return await git.getChanges(base || safeBase, currentRef, initialFetchDepth)
   }
+
+  if (github.context.eventName === 'release') {
+    const releasePayload = github.context.payload as ReleaseEvent
+    const currentTag = releasePayload.release?.tag_name
+    if (currentTag) {
+      if (!ref) {
+        ref = currentTag
+        core.info(`Using tag_name from release event as ref: ${ref}`)
+      }
+      if (!base) {
+        const previousTag = await git.getPreviousTag(currentTag)
+        base = previousTag
+        core.info(`Using previous tag from release event as base: ${base}`)
+      }
+    } else {
+      core.warning('No tag_name found in release payload; falling back to default handling')
+    }
+  }
+
+  if (github.context.eventName === 'merge_group') {
+    // To keep backward compatibility, manual inputs take precedence over
+    // commits in GitHub merge queue event.
+    const mergeGroup = github.context.payload as MergeGroupEvent
+    if (!base && mergeGroup.merge_group?.base_sha) {
+      base = mergeGroup.merge_group.base_sha
+      core.info(`Using base_sha from merge_group event: ${base}`)
+    }
+    if (!ref && mergeGroup.merge_group?.head_sha) {
+      ref = mergeGroup.merge_group.head_sha
+      core.info(`Using head_sha from merge_group event: ${ref}`)
+    }
+  }
+
+  return getChangedFilesFromGit(base, ref, initialFetchDepth)
 }
 
 async function getChangedFilesFromGit(base: string, head: string, initialFetchDepth: number): Promise<File[]> {
   const repository = github.context.payload.repository as { default_branch?: string } | undefined
   const defaultBranch: string | undefined = repository?.default_branch
 
-  const beforeSha = github.context.eventName === 'push' ? (github.context.payload as PushEvent).before : null
+  let beforeSha: string | null = null
+  if (github.context.eventName === 'push') {
+    beforeSha = (github.context.payload as PushEvent).before
+  }
 
   const currentRef = await git.getCurrentRef()
 
@@ -142,38 +212,20 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
 
   // If base is commit SHA we will do comparison against the referenced commit
   // Or if base references same branch it was pushed to, we will do comparison against the previously pushed commit
-  if (isBaseSha || isBaseSameAsHead) {
-    const baseSha = isBaseSha ? base : beforeSha
-    if (!baseSha) {
-      core.warning(`'before' field is missing in event payload - changes will be detected from last commit`)
-      if (head !== currentRef) {
-        core.warning(`Ref ${head} is not checked out - results might be incorrect!`)
-      }
-      return await git.getChangesInLastCommit()
-    }
-
-    // If there is no previously pushed commit,
-    // we will do comparison against the default branch or return all as added
-    if (baseSha === git.NULL_SHA) {
-      if (defaultBranch && base !== defaultBranch) {
-        core.info(
-          `First push of a branch detected - changes will be detected against the default branch ${defaultBranch}`,
-        )
-        if (typeof defaultBranch !== 'string') {
-          throw new Error('Default branch is not defined or is not a string')
-        }
-        return await git.getChangesSinceMergeBase(defaultBranch, head, initialFetchDepth)
-      } else {
-        core.info('Initial push detected - all files will be listed as added')
-        if (head !== currentRef) {
-          core.warning(`Ref ${head} is not checked out - results might be incorrect!`)
-        }
-        return await git.listAllFilesAsAdded()
-      }
-    }
-
+  if (isBaseSha || (isBaseSameAsHead && beforeSha !== null && beforeSha !== git.NULL_SHA)) {
+    const baseSha = isBaseSha ? base : beforeSha!
     core.info(`Changes will be detected between ${baseSha} and ${head}`)
-    return await git.getChanges(baseSha, head)
+    return await git.getChanges(baseSha, head, initialFetchDepth)
+  }
+
+  if (isBaseSameAsHead && beforeSha !== null && beforeSha === git.NULL_SHA) {
+    core.warning(
+      `'before' field is NULL_SHA (initial push) - will use merge base comparison instead of previous commit`,
+    )
+  } else if (isBaseSameAsHead && beforeSha === null) {
+    core.warning(
+      `'before' field is missing in event payload - will use merge base comparison instead of previous commit`,
+    )
   }
 
   core.info(`Changes will be detected between ${base} and ${head}`)
@@ -181,12 +233,17 @@ async function getChangedFilesFromGit(base: string, head: string, initialFetchDe
 }
 
 // Uses github REST api to get list of files changed in PR
-async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEvent): Promise<File[]> {
-  core.startGroup(`Fetching list of changed files for PR#${pullRequest.number} from Github API`)
+async function getChangedFilesFromApi(
+  token: string,
+  pullRequest: PullRequest,
+  initialFetchDepth: number,
+): Promise<File[]> {
+  core.startGroup(`Fetching list of changed files for PR#${pullRequest.number} from GitHub API`)
   try {
     const client = github.getOctokit(token)
     const per_page = 100
     const files: File[] = []
+    let totalPages = 0
 
     core.info(`Invoking listFiles(pull_number: ${pullRequest.number}, per_page: ${per_page})`)
     for await (const response of client.paginate.iterator(
@@ -200,6 +257,7 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
       if (response.status !== 200) {
         throw new Error(`Fetching list of changed files from GitHub API failed with error code ${response.status}`)
       }
+      totalPages++
       core.info(`Received ${response.data.length} items`)
 
       for (const row of response.data as GetResponseDataTypeFromEndpointMethod<typeof client.rest.pulls.listFiles>) {
@@ -243,7 +301,7 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
             })
           }
         } else {
-          // Github status and git status variants are same except for deleted files
+          // GitHub status and git status variants are same except for deleted files
           const status = row.status === 'removed' ? ChangeStatus.Deleted : (row.status as ChangeStatus)
           files.push({
             from: row.filename,
@@ -254,13 +312,42 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequestEve
       }
     }
 
+    core.info(`Fetched ${files.length} files over ${totalPages} pages`)
+
+    // New: Fallback for large PRs if API fetch seems incomplete (e.g., < 4000 files threshold from issue reports)
+    if (files.length < 4000 && pullRequest.number > 0) {
+      const baseSha = pullRequest.base?.sha
+      const headSha = pullRequest.head?.sha
+      if (baseSha && headSha) {
+        core.warning(
+          `Incomplete API fetch detected (${files.length} files); falling back to Git diff for full detection`,
+        )
+        return await git.getChanges(baseSha, headSha, initialFetchDepth)
+      }
+    }
+
     return files
   } finally {
     core.endGroup()
   }
 }
 
-export function exportResults(results: FilterResults, format: ExportFormat): void {
+function getExtension(format: ExportFormat): string {
+  switch (format) {
+    case 'json':
+      return 'json'
+    case 'csv':
+      return 'csv'
+    case 'shell':
+    case 'escape':
+    case 'lines':
+      return 'txt'
+    default:
+      return 'txt'
+  }
+}
+
+export function exportResults(results: FilterResults, format: ExportFormat, writeToFiles: boolean): void {
   core.info('Results:')
   const changes: string[] = []
   let anyChanged = false
@@ -293,11 +380,29 @@ export function exportResults(results: FilterResults, format: ExportFormat): voi
       core.info('Matching files: none')
     }
 
+    // Always set outputs, regardless of value (Backward Compatibility)
     core.setOutput(key, value)
     core.setOutput(`${key}_count`, files.length)
     if (format !== 'none') {
       const filesValue = serializeExport(files, format)
       core.setOutput(`${key}_files`, filesValue)
+
+      // New write-to-files logic: Write file if writeToFiles is true and matches are present
+      if (writeToFiles && value) {
+        const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'paths-filter-'))
+        const ext = getExtension(format)
+        const fileName = `${key}_files.${ext}`
+        const filePath = path.join(tempDir, fileName)
+        try {
+          fs.writeFileSync(filePath, filesValue, { encoding: 'utf8' })
+          core.setOutput(`${key}_files_path`, filePath)
+          core.info(`Wrote matching files to: ${filePath}`)
+        } catch (error) {
+          // Fixed: Extract message first to satisfy ESLint (unknown -> string)
+          const errorMsg = getErrorMessage(error)
+          core.error(`Failed to write file for filter ${key}: ${errorMsg}`)
+        }
+      }
     }
     core.endGroup()
   }
@@ -317,25 +422,53 @@ export function exportResults(results: FilterResults, format: ExportFormat): voi
 }
 
 function serializeExport(files: File[], format: ExportFormat): string {
-  const fileNames = files.map((file) => file.filename)
   switch (format) {
     case 'csv':
-      return fileNames.map(csvEscape).join(',')
+      return files
+        .map((file) => file.filename)
+        .map(csvEscape)
+        .join(',')
     case 'json':
-      return JSON.stringify(fileNames)
+      return JSON.stringify(files.map((file) => file.filename))
+    case 'json-detailed':
+      return JSON.stringify(
+        files.map(({ filename, status, from, to, similarity, previous_filename }) => {
+          const detailed: Record<string, string | number> = {
+            filename,
+            status,
+            from,
+          }
+          if (typeof to === 'string') {
+            detailed.to = to
+          }
+          if (typeof similarity === 'number') {
+            detailed.similarity = similarity
+          }
+          if (typeof previous_filename === 'string') {
+            detailed.previous_filename = previous_filename
+          }
+          return detailed
+        }),
+      )
     case 'escape':
-      return fileNames.map(backslashEscape).join(' ')
+      return files
+        .map((file) => file.filename)
+        .map(backslashEscape)
+        .join(' ')
     case 'shell':
-      return fileNames.map(shellEscape).join(' ')
+      return files
+        .map((file) => file.filename)
+        .map(shellEscape)
+        .join(' ')
     case 'lines':
-      return fileNames.join('\n')
+      return files.map((file) => file.filename).join('\n')
     default:
       return ''
   }
 }
 
 function isExportFormat(value: string): value is ExportFormat {
-  return ['none', 'csv', 'shell', 'json', 'escape', 'lines'].includes(value)
+  return ['none', 'csv', 'shell', 'json', 'json-detailed', 'escape', 'lines'].includes(value)
 }
 
 function getErrorMessage(error: unknown): string {

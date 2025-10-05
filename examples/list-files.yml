@@ -1,0 +1,34 @@
+# Example demonstrating how to list changed files and consume the exported files
+name: Detect docs file changes
+
+on:
+  workflow_dispatch:
+
+jobs:
+  detect-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Detect documentation updates
+        id: filter
+        uses: Ludy87/paths-filter@v3
+        with:
+          list-files: shell
+          write-to-files: true
+          filters: |
+            docs:
+              - 'docs/**'
+            guides:
+              - added: 'guides/**'
+              - modified: 'guides/**'
+
+      - name: Print matching files
+        if: steps.filter.outputs.docs == 'true' || steps.filter.outputs.guides == 'true'
+        run: |
+          echo "Docs changed: ${{ steps.filter.outputs.docs }}"
+          echo "Docs files: ${{ steps.filter.outputs.docs_files }}"
+          echo "Docs file list path: ${{ steps.filter.outputs.docs_files_path }}"
+          echo "Guides changed: ${{ steps.filter.outputs.guides }}"
+          echo "Guides files: ${{ steps.filter.outputs.guides_files }}"
+          echo "Guides file list path: ${{ steps.filter.outputs.guides_files_path }}"
