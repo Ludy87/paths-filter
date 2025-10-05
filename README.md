@@ -170,6 +170,7 @@ Additional scenarios live in the [Examples](#examples) section.
 - Added the `ref` input parameter
 - Added `list-files: csv` format
 - Added `list-files: lines` format
+- Added `list-files: json-detailed` format
 - Configure a matrix job to run for each folder with changes using the `changes` output
 - Improved listing of matching files with the `list-files: shell` and `list-files: escape` options
 - Added optional `write-to-files` support to export matched files to temporary files
@@ -654,6 +655,31 @@ jobs:
   uses: johndoe/some-action@v1
   with:
     files: ${{ steps.filter.outputs.changed_files }}
+```
+
+</details>
+
+<details>
+  <summary>Forward structured change metadata to downstream steps</summary>
+
+```yaml
+- uses: Ludy87/paths-filter@v3
+  id: filter
+  with:
+    # Enable listing of files matching each filter.
+    # Paths to files will be available in the `${FILTER_NAME}_files` output variable.
+    # Values are encoded as JSON objects including the change status and source/target names.
+    list-files: json-detailed
+
+    filters: |
+      backend:
+        - '**/*.ts'
+
+- name: Summarize file changes
+  env:
+    CHANGES: ${{ steps.filter.outputs.backend_files }}
+  run: |
+    echo "Detected changes: ${CHANGES}"
 ```
 
 </details>

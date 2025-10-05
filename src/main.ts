@@ -19,7 +19,7 @@ import * as git from './git'
 import { backslashEscape, shellEscape } from './list-format/shell-escape'
 import { csvEscape } from './list-format/csv-escape'
 
-type ExportFormat = 'none' | 'csv' | 'json' | 'shell' | 'escape' | 'lines'
+type ExportFormat = 'none' | 'csv' | 'json' | 'json-detailed' | 'shell' | 'escape' | 'lines'
 
 async function run(): Promise<void> {
   try {
@@ -412,25 +412,53 @@ export function exportResults(results: FilterResults, format: ExportFormat, writ
 }
 
 function serializeExport(files: File[], format: ExportFormat): string {
-  const fileNames = files.map((file) => file.filename)
   switch (format) {
     case 'csv':
-      return fileNames.map(csvEscape).join(',')
+      return files
+        .map((file) => file.filename)
+        .map(csvEscape)
+        .join(',')
     case 'json':
-      return JSON.stringify(fileNames)
+      return JSON.stringify(files.map((file) => file.filename))
+    case 'json-detailed':
+      return JSON.stringify(
+        files.map(({ filename, status, from, to, similarity, previous_filename }) => {
+          const detailed: Record<string, string | number> = {
+            filename,
+            status,
+            from,
+          }
+          if (typeof to === 'string') {
+            detailed.to = to
+          }
+          if (typeof similarity === 'number') {
+            detailed.similarity = similarity
+          }
+          if (typeof previous_filename === 'string') {
+            detailed.previous_filename = previous_filename
+          }
+          return detailed
+        }),
+      )
     case 'escape':
-      return fileNames.map(backslashEscape).join(' ')
+      return files
+        .map((file) => file.filename)
+        .map(backslashEscape)
+        .join(' ')
     case 'shell':
-      return fileNames.map(shellEscape).join(' ')
+      return files
+        .map((file) => file.filename)
+        .map(shellEscape)
+        .join(' ')
     case 'lines':
-      return fileNames.join('\n')
+      return files.map((file) => file.filename).join('\n')
     default:
       return ''
   }
 }
 
 function isExportFormat(value: string): value is ExportFormat {
-  return ['none', 'csv', 'shell', 'json', 'escape', 'lines'].includes(value)
+  return ['none', 'csv', 'shell', 'json', 'json-detailed', 'escape', 'lines'].includes(value)
 }
 
 function getErrorMessage(error: unknown): string {

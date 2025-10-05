@@ -30,6 +30,17 @@ describe('exportResults file listing formats', () => {
     expect(core.setOutput).toHaveBeenCalledWith('sample_files', JSON.stringify(['simple.txt', 'file with space.txt']))
   })
 
+  test('exports detailed json formatted list', () => {
+    exportResults(results, 'json-detailed')
+    expect(core.setOutput).toHaveBeenCalledWith(
+      'sample_files',
+      JSON.stringify([
+        { filename: 'simple.txt', status: ChangeStatus.Modified, from: 'simple.txt' },
+        { filename: 'file with space.txt', status: ChangeStatus.Added, from: 'file with space.txt' },
+      ]),
+    )
+  })
+
   test('exports shell escaped list', () => {
     exportResults(results, 'shell', false)
     expect(core.setOutput).toHaveBeenCalledWith('sample_files', "simple.txt 'file with space.txt'")

@@ -30,6 +30,8 @@ inputs:
         'csv'   - Comma separated list of filenames.
                   If needed it uses double quotes to wrap filename with unsafe characters.
         'json'  - Serialized as JSON array.
+        'json-detailed' - Serialized as JSON array containing full metadata for each file
+                          (status, source, targets, similarity when available).
         'shell' - Space delimited list usable as command line argument list in linux shell.
                   If needed it uses single or double quotes to wrap filename with unsafe characters.
         'escape' - Space delimited list usable as command line argument list in linux shell.
