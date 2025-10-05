@@ -78,6 +78,13 @@ inputs:
   global-ignore:
     description: 'Path to a file containing global ignore patterns (one per line, like .gitignore).'
     required: false
+  strict-excludes:
+    description: |-
+      When set to 'true', any changed file that matches an exclude pattern in any filter
+      prevents all filters from matching. A warning is emitted to highlight the excluded file.
+      Use this to treat negated patterns as hard stops for the entire filter set.
+    required: false
+    default: 'false'
 outputs:
   all_changed:
     description: Boolean value indicating if all of the filters contained at least one changed file. If no filters matched, this value is 'true'.

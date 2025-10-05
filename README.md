@@ -272,6 +272,13 @@ For more information, see the [CHANGELOG](https://github.com/Ludy87/paths-filter
     #  - '!**/*.jpeg'
     #  - '!**/*.md'
     predicate-quantifier: 'some'
+
+    # When enabled, any changed file that matches an exclude pattern in any filter causes
+    # the entire filter set to yield no matches. The action emits a warning so the run log
+    # shows which exclude rule blocked processing. Use this when negated rules should act
+    # as hard stops rather than simply excluding individual files.
+    # Default: false
+    strict-excludes: 'false'
 ```
 
 ## Outputs
