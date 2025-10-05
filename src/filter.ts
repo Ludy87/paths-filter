@@ -124,7 +124,9 @@ export class Filter {
       // Fixed: No 'negate: true' in options – invert logic in match() instead
       this.globalIgnorePatterns = patterns.map((pattern) => picomatch(pattern, MatchOptions))
     } catch (error) {
-      throw new Error(`Failed to load global-ignore file '${globalIgnorePath}': ${error}`)
+      // Fixed: Extract message first to satisfy ESLint (unknown -> string)
+      const errorMsg = String(error)
+      throw new Error(`Failed to load global-ignore file '${globalIgnorePath}': ${errorMsg}`)
     }
   }
 
