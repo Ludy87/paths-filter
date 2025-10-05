@@ -89,21 +89,25 @@ export function isPredicateQuantifier(value: string): value is PredicateQuantifi
  * files against the defined rules. It supports complex filtering logic including
  * status-based matching, negation, and global ignores.
  */
+const DEFAULT_FILTER_CONFIG: FilterConfig = {
+  predicateQuantifier: PredicateQuantifier.SOME,
+}
+
 export class Filter {
   private readonly rules: Map<string, FilterRuleItem[]> = new Map()
   private readonly globalIgnorePatterns: IgnorePattern[] = []
   private readonly filterConfig: FilterConfig
 
-  constructor(yaml: string, filterConfig: FilterConfig) {
-    this.filterConfig = filterConfig
+  constructor(yaml: string, filterConfig?: FilterConfig) {
+    this.filterConfig = filterConfig ? { ...DEFAULT_FILTER_CONFIG, ...filterConfig } : { ...DEFAULT_FILTER_CONFIG }
     const parsed = jsyaml.load(yaml) as FilterYaml
     if (typeof parsed !== 'object' || parsed === null) {
       throw new Error('Invalid filter YAML format: Expected object')
     }
 
     // Load global ignore patterns if path provided
-    if (filterConfig.globalIgnore) {
-      const globalIgnoreContent = fs.readFileSync(filterConfig.globalIgnore, 'utf8')
+    if (this.filterConfig.globalIgnore) {
+      const globalIgnoreContent = fs.readFileSync(this.filterConfig.globalIgnore, 'utf8')
       const globalIgnores = globalIgnoreContent
         .split(/\r?\n/)
         .map((line) => line.trim())
@@ -171,17 +175,40 @@ export class Filter {
 
     const aPredicate = (rule: FilterRuleItem): boolean => {
       const statusMatch = !rule.status || rule.status.includes(file.status)
-      return statusMatch && rule.isMatch(file.filename)
+      if (!statusMatch) {
+        return false
+      }
+
+      const pathVariants = this.getFilePathVariants(file)
+      return pathVariants.some((variant) => rule.isMatch(variant))
     }
 
     const positiveMatch =
-      this.filterConfig.predicateQuantifier === PredicateQuantifier.EVERY
-        ? positives.every(aPredicate)
-        : positives.some(aPredicate)
+      positives.length === 0
+        ? true
+        : this.filterConfig.predicateQuantifier === PredicateQuantifier.EVERY
+          ? positives.every(aPredicate)
+          : positives.some(aPredicate)
 
     const negativeMatch = negatives.some(aPredicate)
 
     return positiveMatch && !negativeMatch
+  }
+
+  private getFilePathVariants(file: File): string[] {
+    const variants = new Set<string>()
+    variants.add(file.filename)
+    if (file.to) {
+      variants.add(file.to)
+    }
+    if (file.from) {
+      variants.add(file.from)
+    }
+    if (file.previous_filename) {
+      variants.add(file.previous_filename)
+    }
+
+    return Array.from(variants)
   }
 
   private parseFilterItemYaml(item: FilterItemYaml): FilterRuleItem[] {

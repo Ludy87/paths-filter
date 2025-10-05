@@ -219,33 +219,62 @@ export function groupFilesByStatus(files: File[]): Record<ChangeStatus, File[]> 
   return grouped
 }
 
-function parseGitDiffOutput(output: string): File[] {
-  const files: File[] = []
-  let i = 0
-  while (i < output.length) {
-    // Status code (e.g., "A", "M")
-    const statusCode = output.charAt(i)
+const parseNullTerminated = (output: string, startIndex: number): [string, number] => {
+  let i = startIndex
+  let value = ''
+  while (i < output.length && output.charAt(i) !== '\0') {
+    value += output.charAt(i)
     i++
+  }
+  if (i < output.length && output.charAt(i) === '\0') {
+    i++
+  }
+  return [value, i]
+}
 
-    // Skip any spaces after status code
-    while (i < output.length && output.charAt(i) === ' ') {
-      i++
+export function parseGitDiffOutput(output: string): File[] {
+  const files: File[] = []
+  let index = 0
+  while (index < output.length) {
+    const [statusToken, nextIndex] = parseNullTerminated(output, index)
+    index = nextIndex
+
+    if (!statusToken) {
+      break
     }
 
-    // Filename (null-terminated)
-    let filename = ''
-    while (i < output.length && output.charAt(i) !== '\0') {
-      filename += output.charAt(i)
-      i++
-    }
-    i++ // Skip null terminator
+    const statusCode = statusToken.charAt(0)
+    const similarityText = statusToken.slice(1)
+    const similarity = similarityText ? Number.parseInt(similarityText, 10) : undefined
 
-    if (filename) {
-      const status = getChangeStatus(statusCode)
+    const [firstPath, afterFirstPath] = parseNullTerminated(output, index)
+    index = afterFirstPath
+
+    if (!firstPath) {
+      continue
+    }
+
+    const status = getChangeStatus(statusCode)
+
+    if (status === ChangeStatus.Copied || status === ChangeStatus.Renamed) {
+      const [secondPath, afterSecondPath] = parseNullTerminated(output, index)
+      index = afterSecondPath
+
+      const destination = secondPath || firstPath
+      const similarityScore = Number.isNaN(similarity) ? undefined : similarity
+
       files.push({
-        filename,
+        filename: destination,
         status,
-        from: filename,
+        from: firstPath,
+        to: destination,
+        ...(similarityScore !== undefined ? { similarity: similarityScore } : {}),
+      })
+    } else {
+      files.push({
+        filename: firstPath,
+        status,
+        from: firstPath,
       })
     }
   }

@@ -306,10 +306,14 @@ async function getChangedFilesFromApi(token: string, pullRequest: PullRequest): 
 
     // New: Fallback for large PRs if API fetch seems incomplete (e.g., < 4000 files threshold from issue reports)
     if (files.length < 4000 && pullRequest.number > 0) {
-      core.warning(`Incomplete API fetch detected (${files.length} files); falling back to Git diff for full detection`)
-      const baseSha = pullRequest.base.sha
-      const headSha = pullRequest.head.sha
-      return await git.getChanges(baseSha, headSha)
+      const baseSha = pullRequest.base?.sha
+      const headSha = pullRequest.head?.sha
+      if (baseSha && headSha) {
+        core.warning(
+          `Incomplete API fetch detected (${files.length} files); falling back to Git diff for full detection`,
+        )
+        return await git.getChanges(baseSha, headSha)
+      }
     }
 
     return files
