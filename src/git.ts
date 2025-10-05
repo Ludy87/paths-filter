@@ -300,7 +300,6 @@ export function parseGitDiffOutput(output: string): File[] {
     }
 
     const status = getChangeStatus(statusCode)
-    core.info(`Status code: ${status}`)
 
     if (status === ChangeStatus.Copied || status === ChangeStatus.Renamed) {
       let secondPath: string | undefined
@@ -311,6 +310,7 @@ export function parseGitDiffOutput(output: string): File[] {
         secondPath = parsedSecondPath
         index = afterSecondPath
       }
+      core.info(`secondPath: ${secondPath} firstPath: ${firstPath} status: ${status} similarity: ${similarity}`)
 
       const destination = secondPath || firstPath
       const similarityScore = Number.isNaN(similarity) ? undefined : similarity
