@@ -76,6 +76,9 @@ async function run(): Promise<void> {
     }
 
     core.info(`Detected ${files.length} changed files`)
+    for (const file of files) {
+      core.info(`File: ${file.filename}, Status: ${file.status}`)
+    }
 
     const filterConfig: FilterConfig = {
       predicateQuantifier,
