@@ -309,6 +309,7 @@ export function parseGitDiffOutput(output: string): File[] {
         const [parsedSecondPath, afterSecondPath] = parseNullTerminated(output, index)
         secondPath = parsedSecondPath
         index = afterSecondPath
+        core.info(`Parsed second path: ${secondPath} from output at index ${index}`)
       }
 
       const destination = secondPath || firstPath
