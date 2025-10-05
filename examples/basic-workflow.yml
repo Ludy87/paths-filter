@@ -1,0 +1,56 @@
+# Example GitHub workflow demonstrating conditional jobs with paths-filter
+name: Filtered CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - release/*
+
+jobs:
+  detect-changes:
+    name: Detect changes for monorepo services
+    runs-on: ubuntu-latest
+    outputs:
+      backend-changed: ${{ steps.filter.outputs.backend }}
+      frontend-changed: ${{ steps.filter.outputs.frontend }}
+      docs-changed: ${{ steps.filter.outputs.docs }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v5
+      - name: Evaluate changed paths
+        id: filter
+        uses: Ludy87/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'services/backend/**'
+            frontend:
+              - 'apps/web/**'
+            docs:
+              - 'docs/**'
+
+  backend-tests:
+    name: Run backend test suite
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend-changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Execute backend tests"
+
+  frontend-tests:
+    name: Run frontend test suite
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend-changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Execute frontend tests"
+
+  docs-preview:
+    name: Build documentation preview
+    needs: detect-changes
+    if: needs.detect-changes.outputs.docs-changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Build docs preview"

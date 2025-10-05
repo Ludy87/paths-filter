@@ -12,6 +12,9 @@
   - [Table of contents](#table-of-contents)
   - [Motivation](#motivation)
   - [Requirements](#requirements)
+  - [Repository setup](#repository-setup)
+  - [Local development](#local-development)
+  - [Testing the action locally](#testing-the-action-locally)
   - [Supported workflows](#supported-workflows)
   - [Quickstart](#quickstart)
   - [Example](#example)
@@ -24,6 +27,7 @@
     - [Change detection workflows](#change-detection-workflows)
     - [Advanced options](#advanced-options)
     - [Custom processing of changed files](#custom-processing-of-changed-files)
+    - [Workflow examples](#workflow-examples)
   - [Additional resources](#additional-resources)
   - [License](#license)
 
@@ -40,6 +44,40 @@ GitHub provides [path filters](https://docs.github.com/en/actions/reference/work
 ## Requirements
 
 - Node.js 20 or newer
+
+## Repository setup
+
+Clone the repository and install the dependencies once per checkout:
+
+```bash
+git clone https://github.com/Ludy87/paths-filter.git
+cd paths-filter
+npm install
+```
+
+The project uses a conventional Node.js toolchain. All commands shown in this README are available through `npm run <script>`.
+
+## Local development
+
+Use the provided scripts to iterate on the Action codebase:
+
+- `npm run build` – compile the TypeScript sources into `dist/`.
+- `npm run lint` – ensure the source code follows the repository style guide.
+- `npm run format` / `npm run format-check` – apply or verify Prettier formatting.
+- `npm test` – run the Jest test suite.
+- `npm run pack` – bundle the Action with `@vercel/ncc` before publishing.
+
+You can chain several tasks with `npm run all` to perform the typical release pipeline locally. Each command reads configuration from the `tsconfig*.json`, `eslint.config.mjs`, and `jest.config.cjs` files shipped with the repository.
+
+## Testing the action locally
+
+The Action can be smoke-tested outside GitHub using [`act`](https://github.com/nektos/act). Ensure you use a runner image that contains Git:
+
+```bash
+act -P ubuntu-latest=nektos/act-environments-ubuntu:18.04
+```
+
+Point the `filters` input to one of the sample files (for example `sample-filters.yml` or any file under [`examples/`](./examples)) to simulate different change detection scenarios.
 
 ## Supported workflows
 
@@ -262,33 +300,33 @@ jobs:
     runs-on: ubuntu-latest
     # Required permissions
     permissions:
-      contents: read      # required by actions/checkout
+      contents: read # required by actions/checkout
       pull-requests: read # required by Ludy87/paths-filter
     steps:
-    - uses: actions/checkout@v5.0.0
-    - uses: Ludy87/paths-filter@v3
-      id: filter
-      with:
-        filters: |
-          backend:
-            - 'backend/**'
-          frontend:
-            - 'frontend/**'
+      - uses: actions/checkout@v5.0.0
+      - uses: Ludy87/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
 
-    # Run only if `backend` files were changed
-    - name: backend tests
-      if: steps.filter.outputs.backend == 'true'
-      run: ...
+      # Run only if `backend` files were changed
+      - name: backend tests
+        if: steps.filter.outputs.backend == 'true'
+        run: ...
 
-    # Run only if `frontend` files were changed
-    - name: frontend tests
-      if: steps.filter.outputs.frontend == 'true'
-      run: ...
+      # Run only if `frontend` files were changed
+      - name: frontend tests
+        if: steps.filter.outputs.frontend == 'true'
+        run: ...
 
-    # Run if `backend` or `frontend` files were changed
-    - name: e2e tests
-      if: steps.filter.outputs.backend == 'true' || steps.filter.outputs.frontend == 'true'
-      run: ...
+      # Run if `backend` or `frontend` files were changed
+      - name: e2e tests
+        if: steps.filter.outputs.backend == 'true' || steps.filter.outputs.frontend == 'true'
+        run: ...
 ```
 
 </details>
@@ -309,15 +347,15 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
-    # For pull requests it's not necessary to check out the code
-    - uses: Ludy87/paths-filter@v3
-      id: filter
-      with:
-        filters: |
-          backend:
-            - 'backend/**'
-          frontend:
-            - 'frontend/**'
+      # For pull requests it's not necessary to check out the code
+      - uses: Ludy87/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
 
   # Job to build and test backend code
   backend:
@@ -355,13 +393,13 @@ jobs:
       # Expose matched filters as the job `packages` output variable
       packages: ${{ steps.filter.outputs.changes }}
     steps:
-    # For pull requests it's not necessary to check out the code
-    - uses: Ludy87/paths-filter@v3
-      id: filter
-      with:
-        filters: |
-          package1: src/package1
-          package2: src/package2
+      # For pull requests it's not necessary to check out the code
+      - uses: Ludy87/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            package1: src/package1
+            package2: src/package2
 
   # Job to build and test each modified package
   build:
@@ -382,10 +420,10 @@ jobs:
 <details>
   <summary>Use <code>any_changed</code> and <code>all_changed</code> outputs</summary>
 
-  The <code>any_changed</code> output is <code>true</code> when at least one file
-  defined in the filters is added, copied, deleted, modified, renamed, or
-  unmerged. The <code>all_changed</code> output is <code>true</code> only when every
-  filter matches at least one such file.
+The <code>any_changed</code> output is <code>true</code> when at least one file
+defined in the filters is added, copied, deleted, modified, renamed, or
+unmerged. The <code>all_changed</code> output is <code>true</code> only when every
+filter matches at least one such file.
 
 `.github/config/.test.yaml`
 
@@ -411,7 +449,7 @@ jobs:
     runs-on: ubuntu-latest
     # Required permissions
     permissions:
-      contents: read      # required by actions/checkout
+      contents: read # required by actions/checkout
       pull-requests: read # required by Ludy87/paths-filter
     steps:
       - uses: actions/checkout@v5.0.0
@@ -419,7 +457,7 @@ jobs:
         uses: Ludy87/paths-filter@v3
         id: change
         with:
-          filters: ".github/config/.test.yaml"
+          filters: '.github/config/.test.yaml'
 
       - name: React to any change
         if: steps.change.outputs.any_changed == 'true'
@@ -619,6 +657,12 @@ jobs:
 ```
 
 </details>
+
+### Workflow examples
+
+- [`examples/basic-workflow.yml`](./examples/basic-workflow.yml) – Full monorepo-style workflow wiring change detection job outputs into subsequent jobs.
+- [`examples/list-files.yml`](./examples/list-files.yml) – Demonstrates how to enable `list-files`, consume the generated outputs, and make use of the exported file lists.
+- [`sample-filters.yml`](./sample-filters.yml) – Self-contained filter definitions that can be reused across workflows.
 
 ## Additional resources
 
